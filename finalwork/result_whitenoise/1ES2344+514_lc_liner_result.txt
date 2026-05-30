@@ -1,0 +1,15 @@
+É— = 3
+Translation error (mean median):
+m=2: 1.6533
+m=3: 1.6032
+m=4: 1.4305
+m=5: 1.5936
+m=6: 1.7020
+m=7: 1.9818
+m=8: 1.8882
+m=9: 1.8977
+m=10: 1.9263
+m=11: 1.9437
+
+Range of significant change: m = 4 ~ 6
+Radius average: 1.7591

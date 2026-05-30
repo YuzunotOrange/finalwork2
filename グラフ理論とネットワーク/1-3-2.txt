@@ -1,0 +1,3 @@
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> gcc 1-3-2.c
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\a.exe
+Average number of hops: 16.41310

@@ -1,0 +1,24 @@
+//グラフ理論とネットワーク
+//BP22104 松本優瑞
+//2-2-2.c 実行結果
+
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\2-2-2.exe graph2.txt 
+The graph is not an Eulerian graph.
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\2-2-2.exe graph3.txt 
+This is Euler graph:
+0 -> 1
+1 -> 2
+2 -> 3
+3 -> 0
+0 -> 4
+4 -> 1
+1 -> 5
+5 -> 4
+4 -> 7
+7 -> 2
+2 -> 6
+6 -> 3
+3 -> 7
+7 -> 6
+6 -> 5
+5 -> 0

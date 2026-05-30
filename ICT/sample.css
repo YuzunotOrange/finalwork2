@@ -1,0 +1,50 @@
+body {
+    background-color: #FFC080; /* retro orange background */
+    font-family: "Courier New", monospace; /* retro font */
+    text-align: center;
+  }
+  
+  h1 {
+    font-size: 36px;
+    color: #008000; /* retro green text */
+    text-shadow: 2px 2px #FF0000; /* retro text shadow */
+  }
+  
+  .interest-choice {
+    margin: 20px;
+    padding: 10px;
+    border: 1px solid #CCCCCC;
+    border-radius: 10px;
+    background-color: #FFFFFF; /* retro white background */
+    box-shadow: 2px 2px #AAAAAA; /* retro box shadow */
+    cursor: pointer;
+  }
+  
+  .interest-choice:hover {
+    background-color: #FFFFCC; /* retro yellow hover background */
+  }
+  
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 10px;
+    border: 1px solid #CCCCCC;
+    border-radius: 50%;
+    background-color: #FFFFFF; /* retro white background */
+  }
+  
+  input[type="submit"] {
+    width: 100px;
+    height: 30px;
+    margin: 20px;
+    border: 1px solid #CCCCCC;
+    border-radius: 10px;
+    background-color: #008000; /* retro green background */
+    color: #FFFFFF; /* retro white text */
+    font-size: 18px;
+    cursor: pointer;
+  }
+  
+  input[type="submit"]:hover {
+    background-color: #00FF00; /* retro bright green hover background */
+  }

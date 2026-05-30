@@ -1,0 +1,25 @@
+RQA Result:
+===========
+
+Minimum diagonal line length (L_min): 2
+Minimum vertical line length (V_min): 2
+Minimum white vertical line length (W_min): 2
+
+Recurrence rate (RR): 0.095017
+Determinism (DET): 0.676078
+Average diagonal line length (L): 3.660297
+Longest diagonal line length (L_max): 37
+Divergence (DIV): 0.027027
+Entropy diagonal lines (L_entr): 1.662093
+Laminarity (LAM): 0.819187
+Trapping time (TT): 4.809681
+Longest vertical line length (V_max): 28
+Entropy vertical lines (V_entr): 2.074498
+Average white vertical line length (W): 30.483676
+Longest white vertical line length (W_max): 236
+Longest white vertical line length inverse (W_div): 0.004237
+Entropy white vertical lines (W_entr): 3.811090
+
+Ratio determinism / recurrence rate (DET/RR): 7.115355
+Ratio laminarity / determinism (LAM/DET): 1.211674
+

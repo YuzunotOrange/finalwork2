@@ -1,0 +1,9 @@
+indicator,count
+Lorenz attractor (x) + noise,35
+Logistic map + noise,31
+White noise,23
+Sine wave + noise,17
+Sine wave,13
+Brownian motion,12
+Lorenz attractor (x),9
+Logistic map,5

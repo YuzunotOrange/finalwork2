@@ -1,0 +1,11 @@
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> gcc 1-2.c 
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\a.exe graph1.txt
+Degree of node 0: 3
+Degree of node 1: 3
+Degree of node 2: 3
+Degree of node 3: 4
+Degree of node 4: 5
+Degree of node 5: 2
+Degree of node 6: 2
+
+Average degree: 3.142857142857143

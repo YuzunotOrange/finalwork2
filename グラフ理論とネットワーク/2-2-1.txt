@@ -1,0 +1,5 @@
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> gcc 2-2-1.c -o 2-2-1
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\2-2-1.exe graph2.txt
+This is not Euler graph
+PS C:\Users\yuzu5\OneDrive\デスクトップ\Learn\.vscode\グラフ理論とネットワーク> .\2-2-1.exe graph3.txt
+This is Euler graph

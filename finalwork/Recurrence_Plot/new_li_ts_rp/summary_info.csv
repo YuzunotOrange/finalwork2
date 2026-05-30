@@ -1,0 +1,3 @@
+file,mode,xmin,xmax,dt,n_raw_in_range,tau,m,eps,RR,out_png
+1ES2322-409_lc.csv,xy,0.0,600.0,1.0,73,20,5,0.306460501501303,0.013726739880858088,1ES2322-409_lc_ts_rp_0_600.png
+pmn_j1717-5155_lc_liner.csv,yonly,0.0,600.0,1.0,384,26,2,0.02256917892720767,0.04300945179584121,pmn_j1717-5155_lc_liner_ts_rp_0_600.png
