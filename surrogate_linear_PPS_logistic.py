@@ -625,13 +625,10 @@ for name, base_data in datasets.items():
             plt.axvline(real_lam, color='red', linestyle='--', linewidth=3, label=rf'Original ($\lambda$={real_lam:.3f})')
 
             plt.title(
-                f"{name}\n"
-                f"Missing={int(rate*100)}%"
-                f"\n"
-                f"PPS test"
-                f"\n"
-                f"p={p_value:.4f}"
+                f"{name} | Missing={int(rate*100)}% | PPS test | p={p_value:.4f}",
+                
             )
+            
             
             plt.xlabel("Maximum Lyapunov Exponent ($\\lambda$)")
             plt.ylabel("Frequency")
