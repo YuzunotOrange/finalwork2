@@ -197,17 +197,6 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
 
     return y_missing, y_filled, mask
 
-def calculate_autocorrelation(series, max_lag):
-    s = np.asarray(series, dtype=float)
-    mean = np.mean(s)
-    denom = np.sum((s - mean)**2)
-    vals = []
-    for lag in range(1, max_lag + 1):
-        if lag >= len(s): break
-        num = np.sum((s[:-lag] - mean) * (s[lag:] - mean))
-        vals.append(num / denom if denom != 0 else 0.0)
-    return vals
-
 def average_mutual_information(x, max_lag=100, bins=32):
 
     x = np.asarray(x)
