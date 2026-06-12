@@ -1,11 +1,9 @@
+#フォールディング解析の実装
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# ======================
 # データ読み込み
-# ======================
-
 data = pd.read_csv(
     "pulsar_lightcurve.csv",
     header=None,
@@ -15,98 +13,168 @@ data = pd.read_csv(
 time = data["time"].values
 count = data["count"].values
 
-# ======================
-# パラメータ
-# ======================
-
 dt = 0.125
 
-T_values = np.arange(3.0, 7.0 + dt, dt)
+# Folding
 
-chi2_list = []
+def fold_lightcurve(time, count, T, dt=0.125):
 
-best_folded = None
-best_T = None
-best_chi2 = -1
-
-# ======================
-# trial period loop
-# ======================
-
-for T in T_values:
-
-    # 位相
-    phase = time % T
-
-    # 位相ビン数
     Nbin = int(T / dt)
 
-    # ビン番号
+    phase = time % T
+
     indices = (phase / dt).astype(int)
 
-    folded = np.zeros(Nbin)
-    counts_per_bin = np.zeros(Nbin)
+    indices = np.clip(indices, 0, Nbin - 1)
 
-    # folding
-    for i in range(len(count)):
-        b = indices[i]
+    folded_sum = np.bincount(
+        indices,
+        weights=count,
+        minlength=Nbin
+    )
 
-        folded[b] += count[i]
-        counts_per_bin[b] += 1
+    folded_num = np.bincount(
+        indices,
+        minlength=Nbin
+    )
 
-    # 平均
-    valid = counts_per_bin > 0
-    folded[valid] /= counts_per_bin[valid]
+    xi = np.zeros(Nbin)
 
-    # 誤差
-    sigma = np.sqrt(folded / counts_per_bin)
+    valid = folded_num > 0
 
-    # 全体平均
-    mean_value = np.mean(folded[valid])
+    xi[valid] = (
+        folded_sum[valid]
+        / folded_num[valid]
+    )
 
-    # reduced chi2
+    sigma = np.zeros(Nbin)
+
+    sigma[valid] = (
+        np.sqrt(
+            xi[valid] * folded_num[valid]
+        )
+        / folded_num[valid]
+    )
+
+    return xi, sigma
+
+
+# reduced x^2
+
+def reduced_chi2(xi, sigma):
+
+    valid = sigma > 0
+
+    x = xi[valid]
+    s = sigma[valid]
+
+    mean_x = np.mean(x)
+
     chi2 = np.sum(
-        ((folded[valid] - mean_value) ** 2) /
-        (sigma[valid] ** 2)
-    ) / (Nbin - 1)
+        ((x - mean_x) ** 2)
+        / (s ** 2)
+    )
 
-    chi2_list.append(chi2)
+    return chi2 / (len(x) - 1)
 
-    # 最大値保存
-    if chi2 > best_chi2:
-        best_chi2 = chi2
-        best_T = T
-        best_folded = folded.copy()
 
-# ======================
-# 結果表示
-# ======================
+#周期探索
 
-print("Best Period =", best_T)
-print("Max reduced chi2 =", best_chi2)
+trial_periods = np.arange(
+    3.000,
+    7.000 + dt,
+    dt
+)
 
-# ======================
-# chi2 vs period
-# ======================
+chi2_values = []
+
+best_period = None
+best_chi2 = -np.inf
+
+best_xi = None
+best_sigma = None
+
+for T in trial_periods:
+
+    xi, sigma = fold_lightcurve(
+        time,
+        count,
+        T,
+        dt
+    )
+
+    chi2_red = reduced_chi2(
+        xi,
+        sigma
+    )
+
+    chi2_values.append(
+        chi2_red
+    )
+
+    if chi2_red > best_chi2:
+
+        best_chi2 = chi2_red
+        best_period = T
+
+        best_xi = xi.copy()
+        best_sigma = sigma.copy()
+
+
+
+print(f"Best Period = {best_period:.3f} s")
+print(f"Maximum reduced χ² = {best_chi2:.2f}")
+
+
+
+# Step2
+# reduced χ² vs Trial Period
 
 plt.figure(figsize=(8,5))
-plt.plot(T_values, chi2_list)
-plt.xlabel("Trial Period [s]")
-plt.ylabel("Reduced Chi-square")
-plt.title("Folding Analysis")
-plt.grid()
+
+plt.step(
+    trial_periods,
+    chi2_values,
+    where='mid',
+    linewidth=1.5
+)
+
+plt.axvline(
+    best_period,
+    linestyle='--',
+    label=f'Best Period = {best_period:.3f} s'
+)
+
+plt.xlabel('Trial Period [s]')
+plt.ylabel(r"Reduced $\chi^2$")
+
+plt.title('Epoch Folding Analysis')
+
+plt.legend()
+
+plt.tight_layout()
 plt.show()
 
-# ======================
-# folded light curve
-# ======================
 
-phase_axis = np.arange(len(best_folded)) * dt
+phase_time = np.arange(
+    len(best_xi)
+) * dt
 
 plt.figure(figsize=(8,5))
-plt.plot(phase_axis, best_folded)
-plt.xlabel("Phase Time [s]")
-plt.ylabel("Counts")
-plt.title(f"Folded Light Curve (T={best_T:.3f} s)")
-plt.grid()
+
+plt.step(
+    phase_time,
+    best_xi,
+    where='mid',
+    linewidth=1.5
+)
+
+plt.xlabel('Phase Time [s]')
+plt.ylabel('Average Counts')
+
+plt.title(
+    f'Folded Light Curve (T = {best_period:.3f} s)'
+)
+
+plt.tight_layout()
 plt.show()

@@ -91,7 +91,7 @@ if __name__ == '__main__':
     v, m, h, n = neu.calc_v(input_data)
 
     # プロット
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 8))
 
     plt.subplot(2, 1, 1)
     plt.plot(v)

@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     #plot
     x = np.arange(0, time, dt)
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(13, 9))
 
     #I = 3 
     plt.subplot(4, 2, 1)
@@ -127,14 +127,12 @@ if __name__ == '__main__':
     plt.ylim(0,1)
     plt.yticks(np.arange(0, 1.01, 0.25))
 
-
     plt.subplot(4, 2, 5)
     plt.plot(x, h_3, label='h')
     plt.title('I = 3 μA/cm^2: State variables')
     plt.ylabel('h')
     plt.ylim(0,1)
     plt.yticks(np.arange(0, 1.01, 0.25))
-
 
     plt.subplot(4, 2, 7)
     plt.plot(x, n_3, label='n')
@@ -143,13 +141,8 @@ if __name__ == '__main__':
     plt.xlabel('Time [ms]')
     plt.ylim(0,1)
     plt.yticks(np.arange(0, 1.01, 0.25))
-
-
     plt.legend()
 
-
-
-    
     #I = 10
     plt.subplot(4, 2, 2)
     plt.plot(x, v_10)
@@ -164,7 +157,6 @@ if __name__ == '__main__':
     plt.ylabel('m')
     plt.ylim(0,1)
     plt.yticks(np.arange(0, 1.01, 0.25))
-
 
     plt.subplot(4, 2, 6)
     plt.plot(x, h_10, label='h')
@@ -181,14 +173,52 @@ if __name__ == '__main__':
     plt.ylim(0,1)
     plt.yticks(np.arange(0, 1.01, 0.25))
 
-
+    # ★ 1つ目の図（時系列データ）のレイアウトを自動調整して表示
     plt.tight_layout()
     plt.show()
 
+    
+    # Phase Plane（相平面）
+    plt.figure(figsize=(13,9))
 
+    # I = 3
+    plt.subplot(3,2,1)
+    plt.plot(v_3, m_3)
+    plt.title("I=3 : V-m")
+    plt.xlabel("V [mV]")
+    plt.ylabel("m")
 
+    plt.subplot(3,2,3)
+    plt.plot(v_3, h_3)
+    plt.title("I=3 : V-h")
+    plt.xlabel("V [mV]")
+    plt.ylabel("h")
 
-        
+    plt.subplot(3,2,5)
+    plt.plot(v_3, n_3)
+    plt.title("I=3 : V-n")
+    plt.xlabel("V [mV]")
+    plt.ylabel("n")
 
+    # I = 10
+    plt.subplot(3,2,2)
+    plt.plot(v_10, m_10)
+    plt.title("I=10 : V-m")
+    plt.xlabel("V [mV]")
+    plt.ylabel("m")
 
-        
+    plt.subplot(3,2,4)
+    plt.plot(v_10, h_10)
+    plt.title("I=10 : V-h")
+    plt.xlabel("V [mV]")
+    plt.ylabel("h")
+
+    plt.subplot(3,2,6)
+    plt.plot(v_10, n_10)
+    plt.title("I=10 : V-n")
+    plt.xlabel("V [mV]")
+    plt.ylabel("n")
+
+    # ★ 2つ目の図（相平面）のレイアウトを自動調整して表示
+    plt.tight_layout()
+    plt.show()

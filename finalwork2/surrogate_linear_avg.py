@@ -298,7 +298,6 @@ for name, base_data in datasets.items():
 
             # 推定した値を使ってリアプノフ指数を計算
             print(f"Calculating original Lyapunov exponent (m={m_est}, tau={tau_val})......")
-            real_lam = sano_sawada_lyapunov(data, m=m_est, tau=tau_val)
             trial_real_lams.append(real_lam)
 
             print(f"Calculating FT Surrogates......")

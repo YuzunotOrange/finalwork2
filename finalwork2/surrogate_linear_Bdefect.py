@@ -17,6 +17,7 @@ import datetime
 import random
 import shutil
 from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics import mutual_info_score
 
 result_dir = "result_linear_defect"
 if os.path.exists(result_dir):
@@ -96,14 +97,14 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
     elif pattern == "high":
         
         #上位20%を高変化領域とする
-        thresh = np.percentile(diff, 80)
+        thresh = np.percentile(diff, 60)
 
         candidates = np.where(diff >= thresh)[0]
     
     elif pattern == "low":
 
         #下位20%を低変化領域とする
-        thresh = np.percentile(diff, 20)
+        thresh = np.percentile(diff, 40)
 
         candidates = np.where(diff <= thresh)[0]
     
@@ -147,25 +148,57 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
         xi[valid],
         y_missing[valid]
     )
+    print(
+    f"[{pattern}] "
+    f"candidates={len(candidates)} "
+    f"placed={placed}/{num_blocks} "
+    f"actual_missing={mask.sum()/n:.3f}"
+    )
 
     return y_missing, y_filled, mask
 
-def calculate_autocorrelation(series, max_lag):
-    s = np.asarray(series, dtype=float)
-    mean = np.mean(s)
-    denom = np.sum((s - mean)**2)
-    vals = []
+def average_mutual_information(x, max_lag=100, bins=32):
+
+    x = np.asarray(x)
+
+    ami = []
+
     for lag in range(1, max_lag + 1):
-        if lag >= len(s): break
-        num = np.sum((s[:-lag] - mean) * (s[lag:] - mean))
-        vals.append(num / denom if denom != 0 else 0.0)
-    return vals
+
+        x1 = x[:-lag]
+        x2 = x[lag:]
+
+        # ヒストグラム分割
+        x1_bin = np.digitize(
+            x1,
+            np.histogram_bin_edges(x1, bins=bins)
+        )
+
+        x2_bin = np.digitize(
+            x2,
+            np.histogram_bin_edges(x2, bins=bins)
+        )
+
+        mi = mutual_info_score(x1_bin, x2_bin)
+
+        ami.append(mi)
+
+    return np.array(ami)
 
 def determine_tau(series, max_lag=100):
-    ac = calculate_autocorrelation(series, max_lag)
-    for i, v in enumerate(ac):
-        if v < 1/np.e: return i + 1
-    return max_lag
+
+    ami = average_mutual_information(
+        series,
+        max_lag=max_lag
+    )
+
+    # 最初の極小値
+    for i in range(1, len(ami)-1):
+
+        if ami[i] < ami[i-1] and ami[i] < ami[i+1]:
+            return i + 1
+
+    return np.argmin(ami) + 1
 
 def _embed(x, m, tau):
     N = len(x) - (m - 1)*tau
@@ -176,7 +209,7 @@ def _embed(x, m, tau):
 def itho_e1(x, max_dim=10, tau=5, s=None, k=None, theiler=0):
     x = np.asarray(x, dtype=float)
     if s is None: s = tau
-    if k is None: k = max(1, int(0.01*len(x)))
+    if k is None: k = 10
     E1 = []
     for m in range(1, max_dim+1):
         Xm = _embed(x, m, tau)
@@ -210,7 +243,7 @@ def itho_e1(x, max_dim=10, tau=5, s=None, k=None, theiler=0):
 
 
 # --- 佐野、沢田法（最大リアプノフ指数推定）---
-def sano_sawada_lyapunov(data, m = 3, tau = 1, n_neighbors = 30):
+def sano_sawada_lyapunov(data, m = 3, tau = 1, n_neighbors = 30, theiler=None):
     
     N = len(data)
     #アトラクタの再構築
@@ -226,8 +259,21 @@ def sano_sawada_lyapunov(data, m = 3, tau = 1, n_neighbors = 30):
         diff = embedded[:search_range] - embedded[i]
         
         dist = np.linalg.norm(diff, axis=1)
+
+        # 自分自身を除外
+        dist[i] = np.inf
+
+        # Theiler Window
+        if theiler is None:
+            theiler = tau * m
+        w = theiler
+        start = max(0, i - w)
+        end = min(search_range, i + w + 1)
+
+        dist[start:end] = np.inf
+
         #近傍点のインデックスを取得
-        nearest_idx = np.argsort(dist)[1:n_neighbors+1]
+        nearest_idx = np.argsort(dist)[:n_neighbors]
 
         #ヤコビ行列の推定用行列構成
         z = embedded[nearest_idx] - embedded[i]
@@ -280,7 +326,7 @@ datasets = {
     "White Noise": generate_white_noise()
 }
 
-missing_rates = [0.0,0.1, 0.3, 0.5, 0.7, 0.9] #破損率10%~90%まで変化
+missing_rates = [0.0,0.1, 0.3, 0.5, 0.7] #破損率10%~70%まで変化
 num_surr = 39 #有意水準2.5%用の39個
 
 for name, base_data in datasets.items():
@@ -413,24 +459,27 @@ for name, base_data in datasets.items():
 
             # 遅れ時間　tau
             tau_est = determine_tau(data, max_lag=100)
-            tau_est = min(tau_est, 10)
-            print(f"Estimated Tau:{tau_est}")
-
-            if "Brown" in name:
+            if tau_est < 1:
                 tau_est = 1
+            if tau_est > 50:
+                tau_est = 50
+
+            print(f"Estimated Tau:{tau_est}")
+            tau_val = tau_est
 
             #遅れ時間　m
-            e1_data = data[::10]
-            e1_values = itho_e1(e1_data, max_dim=10, tau=tau_est)
+            e1_data = data
+            e1_values = itho_e1(e1_data, max_dim=10, tau=tau_est, theiler=tau_est * 2)
 
 
-            #連続系と離散系で tau を調整
-            tau_val = 10 if "Brown" in name or "Sin" in name else 1
 
             m_est = 2
+
             for i in range(1, len(e1_values)):
-                delta = e1_values[i] - e1_values[i-1]
-                if e1_values[i] > 0.8 and delta < 0.02:
+
+                ratio = e1_values[i] / e1_values[i-1]
+
+                if abs(ratio - 1.0) < 0.05:
                     m_est = i + 1
                     break
             # 【追加】推定結果をメイン画面に表示
@@ -438,18 +487,16 @@ for name, base_data in datasets.items():
 
             # 推定した値を使ってリアプノフ指数を計算
             print(f"Calculating original Lyapunov exponent (m={m_est}, tau={tau_val})......")
-            real_lam = sano_sawada_lyapunov(data, m=m_est, tau=tau_val)
+            real_lam = sano_sawada_lyapunov(data, m=m_est, tau=tau_val, theiler=tau_val*m_est)
 
             print(f"Calculating FT Surrogates......")
-            ft_lams = [sano_sawada_lyapunov(ftsurrogate(data), m=m_est, tau=tau_val) for _ in range(num_surr)]
+            ft_lams = [sano_sawada_lyapunov(ftsurrogate(data), m=m_est, tau=tau_val, theiler=tau_val*m_est) for _ in range(num_surr)]
 
             print("Calculating Shuffle Surrogates......")
             rs_lams = [sano_sawada_lyapunov(rssurrogate(data), m=m_est, tau=tau_val) for _ in range(num_surr)]
 
             print(f"Estimated m: {m_est} (E1 values: {e1_values[:m_est]})")
 
-            #推定下値でリアプノフ指数を計算
-            real_lam = sano_sawada_lyapunov(data, m=m_est, tau=tau_val)
 
             #個別のグラフの作成
             plt.figure(figsize=(10, 6))
@@ -459,10 +506,10 @@ for name, base_data in datasets.items():
             plt.hist(rs_lams, bins=15, color='orange', alpha=0.6, label='Shuffle Surrogates (ALL Random)', edgecolor='red')
             
             #オリジナルの値を赤線で表示
-            plt.axvline(real_lam, color='red', linestyle='--', linewidth=3, label=f'Original ($\lambda$={real_lam:.3f})')
+            plt.axvline(real_lam, color='red', linestyle='--', linewidth=3, label=rf'Original ($\lambda$={real_lam:.3f})')
 
             plt.title(f"{name} (Missing Rate: {int(rate*100)}%)_pattern{pattern_id+1}")
-            plt.xlabel("Maximum Lyapunov Exponent ($\lambda$)")
+            plt.xlabel("Maximum Lyapunov Exponent ($\\lambda$)")
             plt.ylabel("Frequency")
             plt.legend()
             plt.grid(axis='y', alpha=0.3)
