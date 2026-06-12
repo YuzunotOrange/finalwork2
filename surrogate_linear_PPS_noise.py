@@ -19,7 +19,7 @@ import shutil
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import mutual_info_score
 
-result_dir = "result_linear_PPS_sine_noise"
+result_dir = "result_linear_PPS_noise"
 if os.path.exists(result_dir):
     print(f"Cleaning up {result_dir}...")
     shutil.rmtree(result_dir)

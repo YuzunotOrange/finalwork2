@@ -628,6 +628,16 @@ for name, base_data in datasets.items():
             save_path = os.path.join(pattern_dir, f"result_{file_safe_name}.png")
             plt.savefig(save_path)
             print(f"Saved: {save_path}")
+
+            print(f"Saved: {save_path}")
+
+            print("Original λ =", real_lam)
+
+            print("PPS mean =", np.mean(pps_lams))
+            print("PPS std =", np.std(pps_lams))
+
+            print("PPS min =", np.min(pps_lams))
+            print("PPS max =", np.max(pps_lams))
             
             # メモリ節約とグラフ重複防止のため閉じる
             plt.close()

@@ -257,7 +257,7 @@ def itho_e1(x, max_dim=10, tau=5, s=None, k=None, theiler=0):
             use = min(k_eff, j.size)
             jj = j[:use]
             dn = np.mean(d[:use])
-            if dn < 1e-12: continue
+            if dn < 1e-8: continue
             df = np.mean(np.linalg.norm(Xm[i+s] - Xm[jj+s], axis=1))
             ratios.append(df/dn)
         if ratios: E1.append(np.mean(ratios))
@@ -344,7 +344,7 @@ def pps_surrogate(x, m, tau, r=None, return_indices=False):
 
         r = np.percentile(
             dist[dist > 0],
-            5
+            20
         )
 
     idx = np.random.randint(M)
@@ -599,7 +599,6 @@ for name, base_data in datasets.items():
             )
 
 
-
             #個別のグラフの作成
             plt.figure(figsize=(12, 8))
             plt.hist(
@@ -632,7 +631,16 @@ for name, base_data in datasets.items():
             file_safe_name = name.replace(" ", "_").replace("(", "").replace(")", "")
             save_path = os.path.join(pattern_dir, f"result_{file_safe_name}.png")
             plt.savefig(save_path)
+
             print(f"Saved: {save_path}")
+
+            print("Original λ =", real_lam)
+
+            print("PPS mean =", np.mean(pps_lams))
+            print("PPS std =", np.std(pps_lams))
+
+            print("PPS min =", np.min(pps_lams))
+            print("PPS max =", np.max(pps_lams))
             
             # メモリ節約とグラフ重複防止のため閉じる
             plt.close()
