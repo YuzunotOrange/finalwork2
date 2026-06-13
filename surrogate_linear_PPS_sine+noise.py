@@ -55,7 +55,7 @@ def generate_lorenz(n_steps=20000, dt=0.01, sigma=10.0, rho=28.0, beta=8/3):
         z[i+1] = z[i] + dz*dt
     return x
 
-def generate_noisy_sin(
+def generate_sine_noise(
     n_steps=20000,
     freq=1.0,
     dt=0.01,
@@ -409,7 +409,7 @@ def pps_surrogate(x, m, tau, r=None, return_indices=False):
 # --- 解析の実行 ---
 datasets = {
     
-    "Sine + Noise": generate_noisy_sin()
+    "Sine + Noise": generate_sine_noise()
 
 }
 
@@ -651,6 +651,14 @@ for name, base_data in datasets.items():
             save_path = os.path.join(pattern_dir, f"result_{file_safe_name}.png")
             plt.savefig(save_path)
             print(f"Saved: {save_path}")
+            
+            print("Original λ =", real_lam)
+
+            print("PPS mean =", np.mean(pps_lams))
+            print("PPS std =", np.std(pps_lams))
+
+            print("PPS min =", np.min(pps_lams))
+            print("PPS max =", np.max(pps_lams))
             
             # メモリ節約とグラフ重複防止のため閉じる
             plt.close()

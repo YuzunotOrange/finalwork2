@@ -629,8 +629,6 @@ for name, base_data in datasets.items():
             plt.savefig(save_path)
             print(f"Saved: {save_path}")
 
-            print(f"Saved: {save_path}")
-
             print("Original λ =", real_lam)
 
             print("PPS mean =", np.mean(pps_lams))
