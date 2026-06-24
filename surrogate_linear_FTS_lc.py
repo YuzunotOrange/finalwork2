@@ -35,94 +35,6 @@ def load_csv_timeseries(csv_path):
     return df.iloc[:, 0].astype(float).values
 
 
-
-# ====== 破損線形補間を施している ======
-def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, seed=None, pattern = "random"):
-    """
-    連続ブロック欠損をランダムに付与し、線形補間で埋める。
-    missing_rate : 全体の何割を欠損させるか (0 <= r < 1)
-    block_len    : 1ブロックの欠損長（サンプル数）
-    """
-    x = np.asarray(x, dtype=float)
-    n = len(x)
-    if missing_rate <= 0:
-        return x.copy(), x.copy(), np.zeros(n, dtype=bool)
-
-    rng = np.random.default_rng(seed)
-
-    total_missing = int(round(missing_rate * n))
-    num_blocks = max(1, total_missing // block_len)
-
-    mask = np.zeros(n, dtype=bool)
-
-    diff = np.abs(np.diff(x))
-
-    if pattern == "random":
-        candidates = np.arange(n - block_len)
-    
-    elif pattern == "high":
-        
-        #上位20%を高変化領域とする
-        thresh = np.percentile(diff, 60)
-
-        candidates = np.where(diff >= thresh)[0]
-    
-    elif pattern == "low":
-
-        #下位20%を低変化領域とする
-        thresh = np.percentile(diff, 40)
-
-        candidates = np.where(diff <= thresh)[0]
-    
-    else:
-        raise ValueError(f"Unknown pattern: {pattern}")
-    
-    candidates = candidates[candidates < n - block_len]
-
-    #ブロック配置
-    placed = 0
-    trial = 0
-    max_trial = 20000
-
-    while placed < num_blocks and trial < max_trial:
-        
-        start = rng.choice(candidates)
-
-        if not mask[start:start + block_len].any():
-            mask[start:start + block_len] = True
-            placed += 1
-        
-        trial += 1
-
-
-    # 上限調整
-    if mask.sum() > total_missing:
-        extra = mask.sum() - total_missing
-        idx_true = np.where(mask)[0]
-        remove_idx = rng.choice(idx_true, size=extra, replace=False)
-        mask[remove_idx] = False
-
-
-    y_missing = x.copy()
-    y_missing[mask] = np.nan
-
-    # 線形補間（端点は最近傍値で補完）
-    xi = np.arange(n)
-    valid = ~np.isnan(y_missing)
-    y_filled = np.interp(
-        xi,
-        xi[valid],
-        y_missing[valid]
-    )
-    print(
-    f"[{pattern}] "
-    f"candidates={len(candidates)} "
-    f"placed={placed}/{num_blocks} "
-    f"actual_missing={mask.sum()/n:.3f}"
-    )
-
-    return y_missing, y_filled, mask
-
 def average_mutual_information(x, max_lag=100, bins=32):
 
     x = np.asarray(x)
@@ -311,207 +223,205 @@ for file_name in file_list:
         file_name
     )
 
-print("読み込んだファイル")
 
-for name in datasets:
-    print(name)
+# ==============================
+# 解析設定
+# ==============================
+num_runs = 5
+num_surr = 39   # 有意水準2.5%用
 
-missing_rates = [0.0] #破損率は変化なし
-num_surr = 39 #有意水準2.5%用の39個
 
+# ==============================
+# メイン解析
+# ==============================
 for name, base_data in datasets.items():
-    # ファイル保存用の安全な名前
+
     file_safe_name = (
         name.replace(" ", "_")
             .replace("(", "")
             .replace(")", "")
     )
-    # 力学系ごとの保存フォルダ
-    system_dir = os.path.join(result_dir, file_safe_name)
 
-    # フォルダがなければ作成
+    # データごとの保存フォルダ
+    system_dir = os.path.join(
+        result_dir,
+        file_safe_name
+    )
     os.makedirs(system_dir, exist_ok=True)
 
+    for run in range(1, num_runs + 1):
 
-    for rate in missing_rates:
-                    
-        rate_dir = os.path.join(
-             system_dir,
-            f"rate_{int(rate*100)}"
+        print("\n==============================")
+        print(f"Dataset : {name}")
+        print(f"Run     : {run}/{num_runs}")
+        print("==============================")
+
+        # runごとの保存フォルダ
+        run_dir = os.path.join(
+            system_dir,
+            f"run_{run}"
+        )
+        os.makedirs(run_dir, exist_ok=True)
+
+        # 欠損は加えない
+        data = base_data.copy()
+
+        # ===== 時系列データ保存 =====
+        ts_df = pd.DataFrame({
+            "time": np.arange(len(base_data)),
+            "data": data
+        })
+
+        csv_path = os.path.join(
+            run_dir,
+            f"timeseries_{file_safe_name}.csv"
         )
 
-        os.makedirs(rate_dir, exist_ok=True)
+        ts_df.to_csv(csv_path, index=False)
+        print(f"Saved CSV: {csv_path}")
 
-        if rate == 0.0:
-            pattern_range = [0]
-        else:
-            pattern_range = range(3)
-        
-        patterns = {
-            0: "random",
-            1: "high",
-            2: "low"
-        }
+        # ===== 遅れ時間 tau 推定 =====
+        tau_est = determine_tau(data, max_lag=100)
 
-        for pattern_id in pattern_range:
+        if tau_est < 1:
+            tau_est = 1
 
-            print(f"\n--- Analyzing {name}"
-                  f"with Missing Rate {int(rate*100)}%"
-                  f"Pttern = {patterns[pattern_id]} ---"
-                  )
-            
-            pattern_dir = os.path.join(
-                rate_dir,
-                f"pattern_{pattern_id+1}"
+        if tau_est > 50:
+            tau_est = 50
+
+        tau_val = tau_est
+
+        print(f"Estimated Tau: {tau_val}")
+
+        # ===== 埋め込み次元 m 推定 =====
+        e1_values = itho_e1(
+            data,
+            max_dim=10,
+            tau=tau_val,
+            theiler=tau_val * 2
+        )
+
+        m_est = 2
+
+        for i in range(1, len(e1_values)):
+
+            ratio = e1_values[i] / e1_values[i - 1]
+
+            if abs(ratio - 1.0) < 0.05:
+                m_est = i + 1
+                break
+
+        print(f">> Estimated Parameters: Tau = {tau_val}, m = {m_est}")
+        print(f"Estimated m: {m_est} (E1 values: {e1_values[:m_est]})")
+
+        # ===== オリジナルデータのリアプノフ指数 =====
+        print(
+            f"Calculating original Lyapunov exponent "
+            f"(m={m_est}, tau={tau_val})..."
+        )
+
+        real_lam = sano_sawada_lyapunov(
+            data,
+            m=m_est,
+            tau=tau_val,
+            theiler=tau_val * m_est
+        )
+
+        # ===== FTサロゲート =====
+        print("Calculating FT Surrogates...")
+
+        ft_lams = [
+            sano_sawada_lyapunov(
+                ftsurrogate(data),
+                m=m_est,
+                tau=tau_val,
+                theiler=tau_val * m_est
             )
+            for _ in range(num_surr)
+        ]
 
-            os.makedirs(pattern_dir, exist_ok=True)
-            missing_data, data, mask = introduce_block_missing_and_interpolate(
-                base_data,
-                missing_rate=rate,
-                block_len=10,
-                seed=pattern_id,
-                pattern=patterns[pattern_id]
+        # ===== ランダムシャッフルサロゲート =====
+        print("Calculating Shuffle Surrogates...")
+
+        rs_lams = [
+            sano_sawada_lyapunov(
+                rssurrogate(data),
+                m=m_est,
+                tau=tau_val,
+                theiler=tau_val * m_est
             )
-            # ===== 時系列データ保存 =====
-            ts_df = pd.DataFrame({
-                "time": np.arange(len(base_data)),
-                "original": base_data,
-                "missing": missing_data,
-                "interpolated": data,
-                "mask": mask.astype(int)
-            })
+            for _ in range(num_surr)
+        ]
 
-            csv_path = os.path.join(
-                pattern_dir,
-                f"timeseries_{file_safe_name}.csv"
+        # ===== 結果CSV保存 =====
+        result_df = pd.DataFrame({
+            "type": (
+                ["original"] +
+                ["FT_surrogate"] * num_surr +
+                ["Shuffle_surrogate"] * num_surr
+            ),
+            "lambda": (
+                [real_lam] +
+                ft_lams +
+                rs_lams
             )
+        })
 
-            ts_df.to_csv(csv_path, index=False)
+        result_csv_path = os.path.join(
+            run_dir,
+            f"lyapunov_results_{file_safe_name}.csv"
+        )
 
+        result_df.to_csv(result_csv_path, index=False)
+        print(f"Saved result CSV: {result_csv_path}")
 
-            print(f"Saved CSV: {csv_path}")
+        # ===== ヒストグラム作成 =====
+        plt.figure(figsize=(10, 6))
 
-            #データを破損させて、線形補間で埋める処理
-            
-            if rate > 0:
-                # ===== 欠損位置の可視化 =====
-                plt.figure(figsize=(14, 4))
+        plt.hist(
+            ft_lams,
+            bins=15,
+            color='skyblue',
+            alpha=0.6,
+            label='FT Surrogates (Phase Random)',
+            edgecolor='blue'
+        )
 
-                x_axis = np.arange(len(base_data))
+        plt.hist(
+            rs_lams,
+            bins=15,
+            color='orange',
+            alpha=0.6,
+            label='Shuffle Surrogates (ALL Random)',
+            edgecolor='red'
+        )
 
-                # 元データ（青）
-                plt.plot(
-                    x_axis,
-                    base_data,
-                    color='blue',
-                    linewidth=1,
-                    label='Original Data'
-                )
+        plt.axvline(
+            real_lam,
+            color='red',
+            linestyle='--',
+            linewidth=3,
+            label=rf'Original ($\lambda$={real_lam:.3f})'
+        )
 
-                # 補間部分のみ赤で表示
-                interp_only = np.full_like(base_data, np.nan, dtype=float)
-                interp_only[mask] = data[mask]
+        plt.title(
+            f"{name} "
+            f"(Run {run}/{num_runs})"
+        )
 
-                plt.plot(
-                    x_axis,
-                    interp_only,
-                    color='red',
-                    linewidth=2,
-                    label='Interpolated Segment'
-                )
+        plt.xlabel("Maximum Lyapunov Exponent ($\\lambda$)")
+        plt.ylabel("Frequency")
+        plt.legend()
+        plt.grid(axis='y', alpha=0.3)
 
-                plt.title(
-                    f"{name} Missing Visualization "
-                    f"(Rate={int(rate*100)}%," 
-                    f"Pattern={patterns[pattern_id]})"
-                )
+        save_path = os.path.join(
+            run_dir,
+            f"result_{file_safe_name}.png"
+        )
 
-                plt.xlabel("Time")
-                plt.ylabel("Value")
+        plt.savefig(save_path)
+        print(f"Saved figure: {save_path}")
 
-                plt.legend()
-                plt.grid(alpha=0.3)
-                
-                file_safe_name = name.replace(" ", "_").replace("(", "").replace(")", "")
+        plt.close()
 
-                # 保存
-                vis_path = os.path.join(
-                    pattern_dir,
-                    f"missing_vis_{file_safe_name}.png"
-                )
-
-                plt.savefig(vis_path)
-
-                print(f"Saved visualization: {vis_path}")
-
-                plt.close()
-
-            # 遅れ時間　tau
-            tau_est = determine_tau(data, max_lag=100)
-            if tau_est < 1:
-                tau_est = 1
-            if tau_est > 50:
-                tau_est = 50
-
-            print(f"Estimated Tau:{tau_est}")
-            tau_val = tau_est
-
-            #遅れ時間　m
-            e1_data = data
-            e1_values = itho_e1(e1_data, max_dim=10, tau=tau_est, theiler=tau_est * 2)
-
-
-
-            m_est = 2
-
-            for i in range(1, len(e1_values)):
-
-                ratio = e1_values[i] / e1_values[i-1]
-
-                if abs(ratio - 1.0) < 0.05:
-                    m_est = i + 1
-                    break
-            # 【追加】推定結果をメイン画面に表示
-            print(f">> Estimated Parameters: Tau = {tau_val}, m = {m_est}")
-
-            # 推定した値を使ってリアプノフ指数を計算
-            print(f"Calculating original Lyapunov exponent (m={m_est}, tau={tau_val})......")
-            real_lam = sano_sawada_lyapunov(data, m=m_est, tau=tau_val, theiler=tau_val*m_est)
-
-            print(f"Calculating FT Surrogates......")
-            ft_lams = [sano_sawada_lyapunov(ftsurrogate(data), m=m_est, tau=tau_val, theiler=tau_val*m_est) for _ in range(num_surr)]
-
-            print("Calculating Shuffle Surrogates......")
-            rs_lams = [sano_sawada_lyapunov(rssurrogate(data), m=m_est, tau=tau_val) for _ in range(num_surr)]
-
-            print(f"Estimated m: {m_est} (E1 values: {e1_values[:m_est]})")
-
-
-            #個別のグラフの作成
-            plt.figure(figsize=(10, 6))
-
-            #ヒストグラムを２つ重ねで表示
-            plt.hist(ft_lams, bins=15, color='skyblue', alpha=0.6, label='FT Surrogates (Phase Random)', edgecolor='blue')
-            plt.hist(rs_lams, bins=15, color='orange', alpha=0.6, label='Shuffle Surrogates (ALL Random)', edgecolor='red')
-            
-            #オリジナルの値を赤線で表示
-            plt.axvline(real_lam, color='red', linestyle='--', linewidth=3, label=rf'Original ($\lambda$={real_lam:.3f})')
-
-            plt.title(f"{name} (Missing Rate: {int(rate*100)}%)_pattern{pattern_id+1}")
-            plt.xlabel("Maximum Lyapunov Exponent ($\\lambda$)")
-            plt.ylabel("Frequency")
-            plt.legend()
-            plt.grid(axis='y', alpha=0.3)
-
-            # 【追加】resultフォルダにファイルとして保存
-            file_safe_name = name.replace(" ", "_").replace("(", "").replace(")", "")
-            save_path = os.path.join(pattern_dir, f"result_{file_safe_name}.png")
-            plt.savefig(save_path)
-            print(f"Saved: {save_path}")
-            
-            # メモリ節約とグラフ重複防止のため閉じる
-            plt.close()
-    
 plt.show()
-
