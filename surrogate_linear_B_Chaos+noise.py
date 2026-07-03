@@ -19,7 +19,7 @@ import shutil
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import mutual_info_score
 
-result_dir = "result_linear_defect"
+result_dir = "result_linear_defect_noise"
 if os.path.exists(result_dir):
     print(f"Cleaning up {result_dir}...")
     shutil.rmtree(result_dir)
