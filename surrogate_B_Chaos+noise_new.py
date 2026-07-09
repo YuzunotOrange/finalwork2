@@ -1,11 +1,3 @@
-# 2026/05/18
-#線形補間の影響が非線形性に対してどれだけ影響を及ぼすのか確認できる
-#サロゲートデータ法の実装に関するプログラム
-#生成法はランダムシャッフル(RS)とフーリエ変換(FT)
-#統計量として佐野、沢田法(1987)に基づいてリアプノフ指数を使用している
-#検定方法はモンテカルロ有意性検定
-#遅れ時間は相互情報量、埋め込み次元は伊藤法E1で推定
-#欠損の方法として欠損部位をブロックごとランダムに変更（pattern 1~3)
 
 import numpy as np
 import pandas as pd
@@ -19,7 +11,7 @@ import shutil
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import mutual_info_score
 
-result_dir = "result_linear_defect_noise"
+result_dir = "result_linear_defect_noise_new"
 if os.path.exists(result_dir):
     print(f"Cleaning up {result_dir}...")
     shutil.rmtree(result_dir)
@@ -27,8 +19,7 @@ if os.path.exists(result_dir):
 
 
 # --- 力学系を生成 --
-
-def generate_lorenz_noise(n_steps=20000, dt=0.01, sigma=10.0, rho=28.0, beta=8/3, noise_std=0.05):
+def generate_lorenz(n_steps=10000, dt=0.01, sigma=10.0, rho=28.0, beta=8/3):
     x = np.zeros(n_steps)
     y = np.zeros(n_steps)
     z = np.zeros(n_steps)
@@ -40,21 +31,37 @@ def generate_lorenz_noise(n_steps=20000, dt=0.01, sigma=10.0, rho=28.0, beta=8/3
         x[i+1] = x[i] + dx*dt
         y[i+1] = y[i] + dy*dt
         z[i+1] = z[i] + dz*dt
-
-        x += np.random.normal(0, noise_std, size=n_steps)
     return x
 
-def generate_logistic_noise(n_steps=20000, r=4.0, x0=0.3, discard=1000, noise_std=0.05):
+def generate_logistic(n_steps=10000, r=4.0, x0=0.3, discard=1000):
     x = np.zeros(n_steps+discard)
     x[0] = x0
     for i in range(n_steps+discard-1):
         x[i+1] = r*x[i]*(1-x[i])
-        x = x[discard:]
+    return x[discard:]
 
-        x += np.random.normal(0, noise_std, size=n_steps)
+def add_white_noise_relative(series, ratio=0.05):
+     """
+    系列の最大振幅 (max - min) の ratio 倍を標準偏差とする
+    ガウス白色雑音 N(0, sigma^2) を加える
+    """
+     series = np.asarray(series, dtype=float)
+     
+     amplitude=np.max(series) - np.min(series)
+     noise_std = ratio * amplitude
 
-        return x
+     noise = noise_std * np.random.randn(len(series))
+     return series + noise
 
+def generate_lorenz_noisy(n_steps=10000, dt=0.01,
+                          sigma=10.0, rho=28.0, beta=8/3,
+                          noise_ratio=0.05):
+    x = generate_lorenz(n_steps=n_steps, dt=dt, sigma=sigma, rho=rho, beta=beta)
+    return add_white_noise_relative(x, ratio=noise_ratio)
+
+def generate_logistic_noisy(n_steps=10000, r=4.0, x0=0.3, discard=1000, noise_ratio=0.05):
+    x = generate_logistic(n_steps=n_steps, r=r, x0=x0, discard=discard)
+    return add_white_noise_relative(x, ratio=noise_ratio)
 
 # ====== 破損線形補間を施している ======
 def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, seed=None, pattern = "random"):
@@ -305,8 +312,8 @@ def rssurrogate(x):
 
 # --- 解析の実行 ---
 datasets = {
-    "Lorenz (Chaos)": generate_lorenz_noise(),
-    "Logistic (Chaos)": generate_logistic_noise(),
+    "Lorenz (Chaos)": generate_lorenz_noisy(),
+    "Logistic (Chaos)" : generate_logistic_noisy()
 }
 
 missing_rates = [0.0,0.1, 0.3, 0.5, 0.7] #破損率10%~70%まで変化
@@ -387,21 +394,21 @@ for name, base_data in datasets.items():
 
             #データを破損させて、線形補間で埋める処理
             
-            if rate > 0:
-                # ===== 欠損位置の可視化 =====
-                plt.figure(figsize=(14, 4))
+            
+            # ===== 欠損位置の可視化 =====
+            plt.figure(figsize=(14, 4))
 
-                x_axis = np.arange(len(base_data))
+            x_axis = np.arange(len(base_data))
 
-                # 元データ（青）
-                plt.plot(
+            # 元データ（青）
+            plt.plot(
                     x_axis,
                     base_data,
                     color='blue',
                     linewidth=1,
                     label='Original Data'
-                )
-
+            )
+            if rate > 0:
                 # 補間部分のみ赤で表示
                 interp_only = np.full_like(base_data, np.nan, dtype=float)
                 interp_only[mask] = data[mask]
@@ -414,31 +421,31 @@ for name, base_data in datasets.items():
                     label='Interpolated Segment'
                 )
 
-                plt.title(
+            plt.title(
                     f"{name} Missing Visualization "
                     f"(Rate={int(rate*100)}%," 
                     f"Pattern={patterns[pattern_id]})"
-                )
+                  )
 
-                plt.xlabel("Time")
-                plt.ylabel("Value")
+            plt.xlabel("Time")
+            plt.ylabel("Value")
 
-                plt.legend()
-                plt.grid(alpha=0.3)
+            plt.legend()
+            plt.grid(alpha=0.3)                
                 
-                file_safe_name = name.replace(" ", "_").replace("(", "").replace(")", "")
+            file_safe_name = name.replace(" ", "_").replace("(", "").replace(")", "")
 
-                # 保存
-                vis_path = os.path.join(
-                    pattern_dir,
+            # 保存
+            vis_path = os.path.join(
+                 pattern_dir,
                     f"missing_vis_{file_safe_name}.png"
-                )
+             )
 
-                plt.savefig(vis_path)
+            plt.savefig(vis_path)
 
-                print(f"Saved visualization: {vis_path}")
+            print(f"Saved visualization: {vis_path}")
 
-                plt.close()
+            plt.close()
 
             # 遅れ時間　tau
             tau_est = determine_tau(data, max_lag=100)

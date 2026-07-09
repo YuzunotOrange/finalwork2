@@ -1,0 +1,27 @@
+System,Missing Rate (%),Pattern,Original λ,FT Z-score,FT Significance
+Lorenz (Chaos),0,1,0.661655,1.002,NS
+Lorenz (Chaos),10,1,0.672968,1.675,NS
+Lorenz (Chaos),10,2,0.684063,1.469,NS
+Lorenz (Chaos),10,3,0.615762,1.041,NS
+Lorenz (Chaos),30,1,0.544518,-0.434,NS
+Lorenz (Chaos),30,2,0.482245,-0.982,NS
+Lorenz (Chaos),30,3,0.631759,0.771,NS
+Lorenz (Chaos),50,1,0.931795,2.566,5%
+Lorenz (Chaos),50,2,0.950174,2.238,5%
+Lorenz (Chaos),50,3,0.868707,2.329,5%
+Lorenz (Chaos),70,1,1.350578,4.071,1%
+Lorenz (Chaos),70,2,1.2704,3.201,1%
+Lorenz (Chaos),70,3,1.350879,5.87,1%
+Logistic (Chaos),0,1,1.794164,2.351,5%
+Logistic (Chaos),10,1,1.533803,1.04,NS
+Logistic (Chaos),10,2,1.501033,0.197,NS
+Logistic (Chaos),10,3,1.518716,0.655,NS
+Logistic (Chaos),30,1,1.467439,5.374,1%
+Logistic (Chaos),30,2,1.434704,3.461,1%
+Logistic (Chaos),30,3,1.433637,5.665,1%
+Logistic (Chaos),50,1,1.581043,9.241,1%
+Logistic (Chaos),50,2,1.590575,7.641,1%
+Logistic (Chaos),50,3,1.751352,10.594,1%
+Logistic (Chaos),70,1,1.939369,14.406,1%
+Logistic (Chaos),70,2,1.890991,11.668,1%
+Logistic (Chaos),70,3,1.837502,11.58,1%
