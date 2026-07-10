@@ -6,6 +6,7 @@
 #検定方法はモンテカルロ有意性検定
 #遅れ時間は相互情報量、埋め込み次元は伊藤法E1で推定
 #欠損の方法として欠損部位をブロックごとランダムに変更（pattern 1~3)
+#Bhattaのデータ一部のみ
 
 import numpy as np
 import pandas as pd

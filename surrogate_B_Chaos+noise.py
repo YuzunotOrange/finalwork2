@@ -527,8 +527,10 @@ for name, base_data in datasets.items():
                 "Original λ": round(real_lam, 6),
 
                 "FT Z-score": round(ft_result["z_score"], 3),
+                "FT Significance": significance_label(ft_result["z_score"]),
 
-                "FT Significance": significance_label(ft_result["z_score"])
+                "RS Z-score": round(rs_result["z_score"], 3),
+                "RS Significance": significance_label(rs_result["z_score"]),
 
             })
 

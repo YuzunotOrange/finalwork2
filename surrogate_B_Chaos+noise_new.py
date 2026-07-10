@@ -1,4 +1,4 @@
-
+#観測ノイズ
 import numpy as np
 import pandas as pd
 from pandas.plotting import autocorrelation_plot
@@ -310,14 +310,46 @@ def rssurrogate(x):
     #autocorrelation_plot(pd.Series(x_random))
     return np.array(x_random)
 
+def significance_label(z):
+    if np.isnan(z):
+        return "NnN"
+    
+    if abs(z) > 2.58:
+        return "1%"
+    
+    elif abs(z) > 1.96:
+        return "5%"
+    
+    else:
+        return "NS"
+
+def surrogate_z_test(original_value, surrogate_values):
+
+    surrogate_values = np.asarray(surrogate_values)
+
+    mu = np.mean(surrogate_values)
+    sigma = np.std(surrogate_values, ddof=1)
+
+    if sigma == 0:
+        z = np.nan
+    else:
+        z = (original_value - mu) / sigma
+
+    return {
+        "z_score": z
+    }
+
+
 # --- 解析の実行 ---
 datasets = {
     "Lorenz (Chaos)": generate_lorenz_noisy(),
     "Logistic (Chaos)" : generate_logistic_noisy()
 }
 
+
 missing_rates = [0.0,0.1, 0.3, 0.5, 0.7] #破損率10%~70%まで変化
 num_surr = 39 #有意水準2.5%用の39個
+all_results = []
 
 for name, base_data in datasets.items():
     # ファイル保存用の安全な名前
@@ -487,6 +519,25 @@ for name, base_data in datasets.items():
 
             print(f"Estimated m: {m_est} (E1 values: {e1_values[:m_est]})")
 
+            # ===== Z-score calculation =====
+            ft_result = surrogate_z_test(real_lam, ft_lams)
+            rs_result = surrogate_z_test(real_lam, rs_lams)
+
+            all_results.append({
+
+                "System": name,
+                "Missing Rate (%)": int(rate * 100),
+                "Pattern": pattern_id + 1,
+
+                "Original λ": round(real_lam, 6),
+
+                "FT Z-score": round(ft_result["z_score"], 3),
+                "FT Significance": significance_label(ft_result["z_score"]),
+
+                "RS Z-score": round(rs_result["z_score"], 3),
+                "RS Significance": significance_label(rs_result["z_score"]),
+
+            })
 
             #個別のグラフの作成
             plt.figure(figsize=(10, 6))
@@ -512,6 +563,21 @@ for name, base_data in datasets.items():
             
             # メモリ節約とグラフ重複防止のため閉じる
             plt.close()
+
+summary_df = pd.DataFrame(all_results)
+
+summary_path = os.path.join(
+     result_dir,
+        "surrogate_summary.csv"
+    )
+
+summary_df.to_csv(
+     summary_path,
+       index=False
+    )
+
+print(f"Saved Summary: {summary_path}")
+
     
 plt.show()
 
