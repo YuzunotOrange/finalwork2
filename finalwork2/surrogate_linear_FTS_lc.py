@@ -27,7 +27,6 @@ if os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 def load_csv_timeseries(csv_path):
-
     df = pd.read_csv(
         csv_path,
         header=None
@@ -509,4 +508,4 @@ print(f"Saved Summary: {summary_path}")
 
 plt.show()
 
-plt.show()
+
