@@ -144,7 +144,7 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
     y_missing[mask] = np.nan
 
     # 3次スプライン補間
-    xi = np.arrange(n)
+    xi = np.arange(n)
     valid = ~np.isnan (y_missing)
 
     if valid.sum() < 2:

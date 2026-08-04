@@ -1,0 +1,326 @@
+Data,Missing Rate (%),Pattern,Pattern Type,Run,Original λ,FT Z-score,FT Significance,RS Z-score,RS Significance
+Brown motion,0,1,random,1,3.05839,0.098,NS,21.889,1%
+Brown motion,0,1,random,2,3.05839,0.329,NS,29.427,1%
+Brown motion,0,1,random,3,3.05839,0.023,NS,19.964,1%
+Brown motion,0,1,random,4,3.05839,-0.048,NS,23.331,1%
+Brown motion,0,1,random,5,3.05839,0.008,NS,25.688,1%
+Brown motion,10,1,random,1,3.076679,0.674,NS,33.368,1%
+Brown motion,10,1,random,2,2.632771,-0.348,NS,25.696,1%
+Brown motion,10,1,random,3,2.737988,-0.993,NS,32.938,1%
+Brown motion,10,1,random,4,2.993231,0.19,NS,25.497,1%
+Brown motion,10,1,random,5,1.106614,-0.698,NS,4.41,1%
+Brown motion,10,2,high,1,3.010989,0.436,NS,25.168,1%
+Brown motion,10,2,high,2,3.098735,0.261,NS,23.925,1%
+Brown motion,10,2,high,3,0.932997,-1.178,NS,2.538,5%
+Brown motion,10,2,high,4,2.854068,-0.074,NS,24.827,1%
+Brown motion,10,2,high,5,2.832303,-0.374,NS,26.598,1%
+Brown motion,10,3,low,1,2.86048,0.478,NS,42.781,1%
+Brown motion,10,3,low,2,3.120181,0.727,NS,35.026,1%
+Brown motion,10,3,low,3,2.693236,-0.196,NS,29.273,1%
+Brown motion,10,3,low,4,3.056672,0.242,NS,30.347,1%
+Brown motion,10,3,low,5,2.456223,-1.93,NS,19.321,1%
+Brown motion,30,1,random,1,3.191455,0.602,NS,27.173,1%
+Brown motion,30,1,random,2,2.896497,-0.256,NS,27.853,1%
+Brown motion,30,1,random,3,2.800541,-0.851,NS,23.454,1%
+Brown motion,30,1,random,4,3.090552,0.453,NS,28.868,1%
+Brown motion,30,1,random,5,3.076994,0.733,NS,38.721,1%
+Brown motion,30,2,high,1,3.252454,1.356,NS,33.392,1%
+Brown motion,30,2,high,2,3.092906,0.33,NS,28.386,1%
+Brown motion,30,2,high,3,3.278747,0.517,NS,20.615,1%
+Brown motion,30,2,high,4,3.07175,0.164,NS,31.585,1%
+Brown motion,30,2,high,5,3.10002,0.637,NS,37.441,1%
+Brown motion,30,3,low,1,2.987917,0.195,NS,31.947,1%
+Brown motion,30,3,low,2,3.0965,0.304,NS,30.96,1%
+Brown motion,30,3,low,3,2.791416,-0.569,NS,21.304,1%
+Brown motion,30,3,low,4,1.021637,-1.202,NS,3.311,1%
+Brown motion,30,3,low,5,2.689832,-0.886,NS,25.311,1%
+Brown motion,50,1,random,1,3.174803,0.413,NS,34.807,1%
+Brown motion,50,1,random,2,3.275633,0.884,NS,31.966,1%
+Brown motion,50,1,random,3,2.94365,-0.456,NS,28.795,1%
+Brown motion,50,1,random,4,2.756912,-1.002,NS,29.911,1%
+Brown motion,50,1,random,5,3.1549,0.762,NS,33.404,1%
+Brown motion,50,2,high,1,3.157034,0.352,NS,27.421,1%
+Brown motion,50,2,high,2,3.803284,2.729,1%,33.175,1%
+Brown motion,50,2,high,3,3.347521,0.844,NS,33.153,1%
+Brown motion,50,2,high,4,3.411427,0.92,NS,34.62,1%
+Brown motion,50,2,high,5,3.107279,-0.404,NS,32.729,1%
+Brown motion,50,3,low,1,2.937748,0.3,NS,24.837,1%
+Brown motion,50,3,low,2,2.785234,-1.176,NS,25.746,1%
+Brown motion,50,3,low,3,3.259219,0.38,NS,24.033,1%
+Brown motion,50,3,low,4,2.881719,-0.983,NS,23.687,1%
+Brown motion,50,3,low,5,3.345222,1.024,NS,27.974,1%
+Brown motion,70,1,random,1,4.557628,4.157,1%,66.538,1%
+Brown motion,70,1,random,2,4.343448,4.801,1%,50.597,1%
+Brown motion,70,1,random,3,3.678185,1.133,NS,30.13,1%
+Brown motion,70,1,random,4,3.055109,-0.424,NS,28.301,1%
+Brown motion,70,1,random,5,3.602223,2.272,5%,39.74,1%
+Brown motion,70,2,high,1,3.969887,2.6,1%,30.118,1%
+Brown motion,70,2,high,2,4.626185,7.249,1%,40.955,1%
+Brown motion,70,2,high,3,3.782857,1.866,NS,32.985,1%
+Brown motion,70,2,high,4,4.326572,4.48,1%,33.262,1%
+Brown motion,70,2,high,5,4.299105,4.187,1%,47.229,1%
+Brown motion,70,3,low,1,3.612308,1.306,NS,27.625,1%
+Brown motion,70,3,low,2,3.294344,0.615,NS,33.068,1%
+Brown motion,70,3,low,3,3.480663,1.439,NS,28.135,1%
+Brown motion,70,3,low,4,3.863146,1.866,NS,40.667,1%
+Brown motion,70,3,low,5,3.88859,3.225,1%,36.236,1%
+Lorenz (Chaos),0,1,random,1,9.452825,115.379,1%,387.876,1%
+Lorenz (Chaos),0,1,random,2,9.452825,130.904,1%,319.114,1%
+Lorenz (Chaos),0,1,random,3,9.452825,137.07,1%,307.686,1%
+Lorenz (Chaos),0,1,random,4,9.452825,143.154,1%,308.402,1%
+Lorenz (Chaos),0,1,random,5,9.452825,126.722,1%,281.754,1%
+Lorenz (Chaos),10,1,random,1,7.642853,59.331,1%,219.14,1%
+Lorenz (Chaos),10,1,random,2,7.699209,83.257,1%,229.492,1%
+Lorenz (Chaos),10,1,random,3,7.501907,66.204,1%,246.682,1%
+Lorenz (Chaos),10,1,random,4,7.758123,90.733,1%,253.714,1%
+Lorenz (Chaos),10,1,random,5,7.655948,74.756,1%,261.772,1%
+Lorenz (Chaos),10,2,high,1,7.867128,85.97,1%,217.674,1%
+Lorenz (Chaos),10,2,high,2,7.706765,76.926,1%,215.375,1%
+Lorenz (Chaos),10,2,high,3,7.62377,75.202,1%,222.46,1%
+Lorenz (Chaos),10,2,high,4,7.619524,98.486,1%,222.983,1%
+Lorenz (Chaos),10,2,high,5,7.845164,94.22,1%,247.717,1%
+Lorenz (Chaos),10,3,low,1,7.752697,71.567,1%,242.999,1%
+Lorenz (Chaos),10,3,low,2,7.669526,91.057,1%,267.951,1%
+Lorenz (Chaos),10,3,low,3,7.937583,96.045,1%,240.558,1%
+Lorenz (Chaos),10,3,low,4,7.644371,80.979,1%,239.369,1%
+Lorenz (Chaos),10,3,low,5,7.870494,83.834,1%,246.829,1%
+Lorenz (Chaos),30,1,random,1,7.0862,68.034,1%,229.987,1%
+Lorenz (Chaos),30,1,random,2,6.563572,43.285,1%,262.161,1%
+Lorenz (Chaos),30,1,random,3,6.66786,50.082,1%,226.382,1%
+Lorenz (Chaos),30,1,random,4,7.167521,68.615,1%,224.253,1%
+Lorenz (Chaos),30,1,random,5,6.856151,58.043,1%,192.444,1%
+Lorenz (Chaos),30,2,high,1,7.618002,79.629,1%,260.769,1%
+Lorenz (Chaos),30,2,high,2,7.575772,74.422,1%,321.807,1%
+Lorenz (Chaos),30,2,high,3,7.75095,89.277,1%,333.151,1%
+Lorenz (Chaos),30,2,high,4,7.217363,73.675,1%,242.2,1%
+Lorenz (Chaos),30,2,high,5,7.566669,75.465,1%,267.426,1%
+Lorenz (Chaos),30,3,low,1,7.095291,83.936,1%,231.357,1%
+Lorenz (Chaos),30,3,low,2,6.748837,57.953,1%,231.073,1%
+Lorenz (Chaos),30,3,low,3,6.947537,54.869,1%,199.157,1%
+Lorenz (Chaos),30,3,low,4,6.954553,68.67,1%,164.995,1%
+Lorenz (Chaos),30,3,low,5,7.019129,60.657,1%,199.944,1%
+Lorenz (Chaos),50,1,random,1,6.906599,62.645,1%,273.071,1%
+Lorenz (Chaos),50,1,random,2,6.86094,54.729,1%,245.879,1%
+Lorenz (Chaos),50,1,random,3,7.007234,70.075,1%,249.389,1%
+Lorenz (Chaos),50,1,random,4,6.85342,50.424,1%,239.209,1%
+Lorenz (Chaos),50,1,random,5,6.794736,61.509,1%,257.388,1%
+Lorenz (Chaos),50,2,high,1,7.789005,102.477,1%,282.888,1%
+Lorenz (Chaos),50,2,high,2,8.010874,68.67,1%,264.497,1%
+Lorenz (Chaos),50,2,high,3,7.89773,95.403,1%,285.191,1%
+Lorenz (Chaos),50,2,high,4,7.862047,81.181,1%,237.429,1%
+Lorenz (Chaos),50,2,high,5,7.766689,88.394,1%,280.406,1%
+Lorenz (Chaos),50,3,low,1,7.117786,49.875,1%,254.322,1%
+Lorenz (Chaos),50,3,low,2,7.158733,69.049,1%,214.853,1%
+Lorenz (Chaos),50,3,low,3,6.80952,48.69,1%,208.036,1%
+Lorenz (Chaos),50,3,low,4,7.128605,69.358,1%,233.517,1%
+Lorenz (Chaos),50,3,low,5,7.202218,54.423,1%,214.822,1%
+Lorenz (Chaos),70,1,random,1,7.055306,66.425,1%,236.046,1%
+Lorenz (Chaos),70,1,random,2,7.126283,70.101,1%,214.292,1%
+Lorenz (Chaos),70,1,random,3,7.092212,61.379,1%,230.23,1%
+Lorenz (Chaos),70,1,random,4,7.033993,58.716,1%,244.551,1%
+Lorenz (Chaos),70,1,random,5,7.196695,61.104,1%,259.116,1%
+Lorenz (Chaos),70,2,high,1,7.789005,88.832,1%,256.227,1%
+Lorenz (Chaos),70,2,high,2,8.010874,79.434,1%,277.072,1%
+Lorenz (Chaos),70,2,high,3,7.89773,77.29,1%,256.615,1%
+Lorenz (Chaos),70,2,high,4,7.862047,67.617,1%,233.33,1%
+Lorenz (Chaos),70,2,high,5,7.766689,70.836,1%,224.9,1%
+Lorenz (Chaos),70,3,low,1,7.117786,68.273,1%,252.309,1%
+Lorenz (Chaos),70,3,low,2,7.158733,56.537,1%,243.001,1%
+Lorenz (Chaos),70,3,low,3,6.80952,53.708,1%,228.055,1%
+Lorenz (Chaos),70,3,low,4,7.128605,62.458,1%,244.717,1%
+Lorenz (Chaos),70,3,low,5,7.202218,67.445,1%,273.956,1%
+Logistic (Chaos),0,1,random,1,9.615249,268.405,1%,120.818,1%
+Logistic (Chaos),0,1,random,2,9.615249,208.88,1%,153.232,1%
+Logistic (Chaos),0,1,random,3,9.615249,204.243,1%,135.046,1%
+Logistic (Chaos),0,1,random,4,9.615249,206.8,1%,130.31,1%
+Logistic (Chaos),0,1,random,5,9.615249,210.358,1%,125.041,1%
+Logistic (Chaos),10,1,random,1,7.952755,149.706,1%,94.687,1%
+Logistic (Chaos),10,1,random,2,7.386334,125.014,1%,74.026,1%
+Logistic (Chaos),10,1,random,3,8.351186,165.347,1%,78.456,1%
+Logistic (Chaos),10,1,random,4,7.260551,120.968,1%,82.909,1%
+Logistic (Chaos),10,1,random,5,7.90391,163.465,1%,73.889,1%
+Logistic (Chaos),10,2,high,1,7.701783,116.287,1%,96.247,1%
+Logistic (Chaos),10,2,high,2,7.890631,134.752,1%,104.216,1%
+Logistic (Chaos),10,2,high,3,8.468584,157.791,1%,92.973,1%
+Logistic (Chaos),10,2,high,4,7.748825,116.936,1%,64.015,1%
+Logistic (Chaos),10,2,high,5,7.694036,110.695,1%,91.135,1%
+Logistic (Chaos),10,3,low,1,7.700084,165.044,1%,89.553,1%
+Logistic (Chaos),10,3,low,2,8.285244,129.941,1%,76.124,1%
+Logistic (Chaos),10,3,low,3,7.9657,165.164,1%,68.676,1%
+Logistic (Chaos),10,3,low,4,7.850736,142.872,1%,87.345,1%
+Logistic (Chaos),10,3,low,5,7.558351,123.971,1%,93.913,1%
+Logistic (Chaos),30,1,random,1,5.613675,63.035,1%,45.57,1%
+Logistic (Chaos),30,1,random,2,5.17349,83.015,1%,40.144,1%
+Logistic (Chaos),30,1,random,3,5.062168,57.318,1%,36.594,1%
+Logistic (Chaos),30,1,random,4,4.823428,50.639,1%,35.071,1%
+Logistic (Chaos),30,1,random,5,4.454668,34.077,1%,33.913,1%
+Logistic (Chaos),30,2,high,1,5.488713,69.559,1%,47.986,1%
+Logistic (Chaos),30,2,high,2,4.938571,53.756,1%,39.568,1%
+Logistic (Chaos),30,2,high,3,5.53035,73.786,1%,52.094,1%
+Logistic (Chaos),30,2,high,4,5.183771,56.544,1%,54.163,1%
+Logistic (Chaos),30,2,high,5,4.91159,48.936,1%,30.992,1%
+Logistic (Chaos),30,3,low,1,5.216272,55.965,1%,43.564,1%
+Logistic (Chaos),30,3,low,2,4.283479,57.802,1%,28.459,1%
+Logistic (Chaos),30,3,low,3,4.978529,66.397,1%,43.166,1%
+Logistic (Chaos),30,3,low,4,5.08579,56.524,1%,43.485,1%
+Logistic (Chaos),30,3,low,5,4.773691,61.396,1%,42.252,1%
+Logistic (Chaos),50,1,random,1,3.265736,34.427,1%,27.256,1%
+Logistic (Chaos),50,1,random,2,3.237781,24.69,1%,19.421,1%
+Logistic (Chaos),50,1,random,3,2.982184,22.515,1%,20.217,1%
+Logistic (Chaos),50,1,random,4,2.846456,26.902,1%,17.798,1%
+Logistic (Chaos),50,1,random,5,2.771546,18.87,1%,16.142,1%
+Logistic (Chaos),50,2,high,1,3.78512,38.349,1%,31.543,1%
+Logistic (Chaos),50,2,high,2,2.994987,29.681,1%,19.477,1%
+Logistic (Chaos),50,2,high,3,3.567678,31.866,1%,23.798,1%
+Logistic (Chaos),50,2,high,4,3.157292,26.347,1%,26.222,1%
+Logistic (Chaos),50,2,high,5,3.355149,26.955,1%,29.714,1%
+Logistic (Chaos),50,3,low,1,3.238637,25.225,1%,25.377,1%
+Logistic (Chaos),50,3,low,2,3.603426,34.946,1%,23.603,1%
+Logistic (Chaos),50,3,low,3,2.560139,18.423,1%,11.828,1%
+Logistic (Chaos),50,3,low,4,3.374909,30.703,1%,22.612,1%
+Logistic (Chaos),50,3,low,5,3.360264,29.219,1%,19.188,1%
+Logistic (Chaos),70,1,random,1,1.861983,4.873,1%,12.061,1%
+Logistic (Chaos),70,1,random,2,2.244203,10.27,1%,14.806,1%
+Logistic (Chaos),70,1,random,3,2.413429,13.765,1%,21.241,1%
+Logistic (Chaos),70,1,random,4,2.201054,7.297,1%,14.399,1%
+Logistic (Chaos),70,1,random,5,2.145687,10.031,1%,13.65,1%
+Logistic (Chaos),70,2,high,1,1.8186,3.746,1%,9.108,1%
+Logistic (Chaos),70,2,high,2,2.211011,8.7,1%,14.552,1%
+Logistic (Chaos),70,2,high,3,1.888788,4.24,1%,8.25,1%
+Logistic (Chaos),70,2,high,4,1.958661,6.535,1%,9.818,1%
+Logistic (Chaos),70,2,high,5,2.277771,10.453,1%,12.704,1%
+Logistic (Chaos),70,3,low,1,2.169009,7.418,1%,11.896,1%
+Logistic (Chaos),70,3,low,2,2.058303,8.159,1%,17.873,1%
+Logistic (Chaos),70,3,low,3,2.137896,7.493,1%,11.422,1%
+Logistic (Chaos),70,3,low,4,2.262498,8.175,1%,14.148,1%
+Logistic (Chaos),70,3,low,5,2.053962,6.515,1%,10.556,1%
+Sine wave (Linear),0,1,random,1,1.419171,18.828,1%,-10.451,1%
+Sine wave (Linear),0,1,random,2,1.419171,21.65,1%,-10.071,1%
+Sine wave (Linear),0,1,random,3,1.419171,20.987,1%,-11.795,1%
+Sine wave (Linear),0,1,random,4,1.419171,22.239,1%,-11.071,1%
+Sine wave (Linear),0,1,random,5,1.419171,18.425,1%,-8.728,1%
+Sine wave (Linear),10,1,random,1,10.514695,252.689,1%,588.891,1%
+Sine wave (Linear),10,1,random,2,8.87665,219.532,1%,630.578,1%
+Sine wave (Linear),10,1,random,3,9.143294,182.724,1%,580.641,1%
+Sine wave (Linear),10,1,random,4,10.855016,262.285,1%,660.809,1%
+Sine wave (Linear),10,1,random,5,11.694032,224.715,1%,831.137,1%
+Sine wave (Linear),10,2,high,1,7.406819,261.128,1%,302.436,1%
+Sine wave (Linear),10,2,high,2,7.393908,279.433,1%,299.83,1%
+Sine wave (Linear),10,2,high,3,6.644355,252.226,1%,272.24,1%
+Sine wave (Linear),10,2,high,4,5.110896,152.54,1%,155.663,1%
+Sine wave (Linear),10,2,high,5,7.486822,142.087,1%,774.974,1%
+Sine wave (Linear),10,3,low,1,8.849335,207.804,1%,527.533,1%
+Sine wave (Linear),10,3,low,2,6.404199,130.464,1%,414.181,1%
+Sine wave (Linear),10,3,low,3,7.975185,154.04,1%,414.906,1%
+Sine wave (Linear),10,3,low,4,7.239883,154.785,1%,597.164,1%
+Sine wave (Linear),10,3,low,5,8.361887,170.504,1%,453.936,1%
+Sine wave (Linear),30,1,random,1,13.643481,552.487,1%,548.606,1%
+Sine wave (Linear),30,1,random,2,14.589808,275.938,1%,808.002,1%
+Sine wave (Linear),30,1,random,3,12.266532,491.04,1%,520.17,1%
+Sine wave (Linear),30,1,random,4,15.240024,354.629,1%,878.94,1%
+Sine wave (Linear),30,1,random,5,13.496911,583.284,1%,626.092,1%
+Sine wave (Linear),30,2,high,1,6.554707,136.701,1%,835.398,1%
+Sine wave (Linear),30,2,high,2,5.987079,84.918,1%,545.147,1%
+Sine wave (Linear),30,2,high,3,10.03516,203.433,1%,1174.72,1%
+Sine wave (Linear),30,2,high,4,10.025484,208.768,1%,912.177,1%
+Sine wave (Linear),30,2,high,5,6.235425,94.34,1%,659.987,1%
+Sine wave (Linear),30,3,low,1,8.979273,184.854,1%,894.314,1%
+Sine wave (Linear),30,3,low,2,9.266896,158.221,1%,968.872,1%
+Sine wave (Linear),30,3,low,3,8.751189,176.357,1%,894.046,1%
+Sine wave (Linear),30,3,low,4,9.004301,174.81,1%,799.367,1%
+Sine wave (Linear),30,3,low,5,9.055448,192.504,1%,1298.948,1%
+Sine wave (Linear),50,1,random,1,16.678833,471.602,1%,1853.83,1%
+Sine wave (Linear),50,1,random,2,16.759582,456.138,1%,1966.906,1%
+Sine wave (Linear),50,1,random,3,10.688116,604.533,1%,615.311,1%
+Sine wave (Linear),50,1,random,4,16.721403,411.147,1%,2323.058,1%
+Sine wave (Linear),50,1,random,5,17.595053,472.634,1%,2090.763,1%
+Sine wave (Linear),50,2,high,1,3.882628,50.403,1%,161.14,1%
+Sine wave (Linear),50,2,high,2,4.626546,84.808,1%,248.271,1%
+Sine wave (Linear),50,2,high,3,5.140466,78.394,1%,563.365,1%
+Sine wave (Linear),50,2,high,4,5.284768,82.73,1%,541.065,1%
+Sine wave (Linear),50,2,high,5,4.78283,141.67,1%,148.123,1%
+Sine wave (Linear),50,3,low,1,7.334952,147.45,1%,456.796,1%
+Sine wave (Linear),50,3,low,2,8.783951,141.142,1%,720.451,1%
+Sine wave (Linear),50,3,low,3,7.593215,126.362,1%,724.615,1%
+Sine wave (Linear),50,3,low,4,7.691721,133.257,1%,719.644,1%
+Sine wave (Linear),50,3,low,5,8.614258,183.951,1%,808.508,1%
+Sine wave (Linear),70,1,random,1,16.216259,213.01,1%,1731.128,1%
+Sine wave (Linear),70,1,random,2,7.2599,416.557,1%,258.276,1%
+Sine wave (Linear),70,1,random,3,13.13302,245.405,1%,1486.438,1%
+Sine wave (Linear),70,1,random,4,7.994428,63.321,1%,122.223,1%
+Sine wave (Linear),70,1,random,5,12.604487,263.32,1%,1588.253,1%
+Sine wave (Linear),70,2,high,1,3.882628,44.022,1%,173.929,1%
+Sine wave (Linear),70,2,high,2,4.626546,68.497,1%,218.828,1%
+Sine wave (Linear),70,2,high,3,5.140466,66.259,1%,523.912,1%
+Sine wave (Linear),70,2,high,4,5.284768,76.246,1%,631.929,1%
+Sine wave (Linear),70,2,high,5,4.78283,150.536,1%,141.026,1%
+Sine wave (Linear),70,3,low,1,7.334952,134.069,1%,474.761,1%
+Sine wave (Linear),70,3,low,2,8.783951,173.071,1%,628.077,1%
+Sine wave (Linear),70,3,low,3,7.593215,129.861,1%,766.541,1%
+Sine wave (Linear),70,3,low,4,7.691721,152.323,1%,879.881,1%
+Sine wave (Linear),70,3,low,5,8.614258,136.574,1%,971.575,1%
+White Noise,0,1,random,1,1.706493,-0.949,NS,-0.525,NS
+White Noise,0,1,random,2,1.706493,-0.698,NS,-0.566,NS
+White Noise,0,1,random,3,1.706493,-0.975,NS,-0.782,NS
+White Noise,0,1,random,4,1.706493,-0.607,NS,-1.216,NS
+White Noise,0,1,random,5,1.706493,-0.657,NS,-0.881,NS
+White Noise,10,1,random,1,1.291567,-0.021,NS,-0.34,NS
+White Noise,10,1,random,2,1.382352,2.366,5%,1.456,NS
+White Noise,10,1,random,3,1.348458,2.035,5%,1.923,NS
+White Noise,10,1,random,4,1.373756,2.062,5%,1.152,NS
+White Noise,10,1,random,5,1.148911,1.127,NS,0.879,NS
+White Noise,10,2,high,1,1.257982,1.705,NS,1.093,NS
+White Noise,10,2,high,2,1.411593,2.823,1%,1.776,NS
+White Noise,10,2,high,3,1.437799,2.942,1%,3.154,1%
+White Noise,10,2,high,4,1.431531,3.086,1%,1.723,NS
+White Noise,10,2,high,5,1.339428,1.407,NS,0.991,NS
+White Noise,10,3,low,1,1.378817,1.027,NS,0.711,NS
+White Noise,10,3,low,2,1.456426,3.022,1%,1.871,NS
+White Noise,10,3,low,3,1.334933,0.078,NS,0.226,NS
+White Noise,10,3,low,4,1.404258,4.501,1%,2.96,1%
+White Noise,10,3,low,5,1.43269,1.859,NS,1.843,NS
+White Noise,30,1,random,1,1.286926,-0.05,NS,1.3,NS
+White Noise,30,1,random,2,1.274638,-0.862,NS,0.418,NS
+White Noise,30,1,random,3,1.499369,2.24,5%,4.091,1%
+White Noise,30,1,random,4,1.380832,-0.298,NS,1.954,NS
+White Noise,30,1,random,5,1.557113,0.174,NS,2.676,1%
+White Noise,30,2,high,1,1.399458,0.706,NS,2.043,5%
+White Noise,30,2,high,2,1.253212,-1.037,NS,0.497,NS
+White Noise,30,2,high,3,1.631766,1.393,NS,3.525,1%
+White Noise,30,2,high,4,1.47689,1.303,NS,3.239,1%
+White Noise,30,2,high,5,1.549595,0.139,NS,1.528,NS
+White Noise,30,3,low,1,1.299933,-0.033,NS,1.864,NS
+White Noise,30,3,low,2,1.269413,-1.095,NS,1.05,NS
+White Noise,30,3,low,3,1.278607,-0.53,NS,1.22,NS
+White Noise,30,3,low,4,1.48747,2.161,5%,3.5,1%
+White Noise,30,3,low,5,1.43934,0.466,NS,2.176,5%
+White Noise,50,1,random,1,1.526915,0.901,NS,3.95,1%
+White Noise,50,1,random,2,1.539187,0.623,NS,4.48,1%
+White Noise,50,1,random,3,1.476942,0.981,NS,4.38,1%
+White Noise,50,1,random,4,1.444413,-0.348,NS,3.44,1%
+White Noise,50,1,random,5,1.362904,0.739,NS,3.383,1%
+White Noise,50,2,high,1,1.532282,0.097,NS,3.552,1%
+White Noise,50,2,high,2,1.635281,1.2,NS,4.371,1%
+White Noise,50,2,high,3,1.558836,0.8,NS,7.211,1%
+White Noise,50,2,high,4,1.576834,0.577,NS,4.87,1%
+White Noise,50,2,high,5,1.458254,-0.849,NS,3.785,1%
+White Noise,50,3,low,1,1.454921,0.861,NS,4.64,1%
+White Noise,50,3,low,2,1.423269,-0.885,NS,4.062,1%
+White Noise,50,3,low,3,1.432789,-0.523,NS,3.065,1%
+White Noise,50,3,low,4,1.375761,-0.162,NS,3.101,1%
+White Noise,50,3,low,5,1.594798,2.703,1%,7.139,1%
+White Noise,70,1,random,1,1.665141,1.746,NS,6.412,1%
+White Noise,70,1,random,2,1.705962,1.202,NS,6.448,1%
+White Noise,70,1,random,3,1.480806,-0.777,NS,6.118,1%
+White Noise,70,1,random,4,1.789479,2.431,5%,6.844,1%
+White Noise,70,1,random,5,1.537827,1.667,NS,6.179,1%
+White Noise,70,2,high,1,1.683237,0.853,NS,7.993,1%
+White Noise,70,2,high,2,1.515943,-0.787,NS,4.624,1%
+White Noise,70,2,high,3,1.572395,0.239,NS,5.938,1%
+White Noise,70,2,high,4,1.588201,0.008,NS,4.805,1%
+White Noise,70,2,high,5,1.628735,1.562,NS,6.866,1%
+White Noise,70,3,low,1,1.646418,0.774,NS,7.477,1%
+White Noise,70,3,low,2,1.529338,-1.18,NS,5.236,1%
+White Noise,70,3,low,3,1.511112,-1.067,NS,5.912,1%
+White Noise,70,3,low,4,1.490632,-0.586,NS,5.864,1%
+White Noise,70,3,low,5,1.761304,2.228,5%,8.382,1%
