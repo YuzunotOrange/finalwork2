@@ -340,48 +340,13 @@ def sano_sawada_lyapunov(
     dt=1.0,
     return_spectrum=False
 ):
-    """
-    Sano-Sawada法に基づき、
-    局所線形写像を近傍点から最小二乗推定し、
-    QR分解による接ベクトルの逐次伝播から
-    Lyapunov spectrumを推定する。
 
-    Parameters
-    ----------
-    data : array-like
-        1次元時系列
-
-    m : int
-        埋め込み次元
-
-    tau : int
-        遅れ時間
-
-    n_neighbors : int
-        局所線形写像の推定に使用する近傍点数
-
-    theiler : int or None
-        Theiler window
-        Noneなら tau*m
-
-    step : int
-        局所写像の時間ステップ
-
-    dt : float
-        元時系列のサンプリング時間
-        Logistic mapなら1.0でよい
-
-    return_spectrum : bool
-        Trueなら全Lyapunov spectrumを返す
-        Falseなら最大Lyapunov指数のみ返す
-    """
 
     data = np.asarray(data, dtype=float)
 
-    # ============================================
+   
     # 1. 遅延座標によるアトラクタ再構成
-    # X_i = [x_i, x_{i+tau}, ..., x_{i+(m-1)tau}]
-    # ============================================
+
     embedded = _embed(data, m, tau)
 
     num_points = len(embedded)
@@ -394,9 +359,9 @@ def sano_sawada_lyapunov(
     if theiler is None:
         theiler = tau * m
 
-    # ============================================
+
     # 2. 接空間の初期直交基底
-    # ============================================
+
     Q = np.eye(m)
 
     # 各方向のlog伸長率を累積
@@ -404,9 +369,9 @@ def sano_sawada_lyapunov(
 
     valid_steps = 0
 
-    # ============================================
+    
     # 3. 軌道に沿って局所Jacobianを推定
-    # ============================================
+  
     for i in range(num_points - step):
 
         # 現在点との差
@@ -417,10 +382,10 @@ def sano_sawada_lyapunov(
         # 自分自身を除外
         dist[i] = np.inf
 
-        # ========================================
+    
         # Theiler window
         # 時間的に近すぎる点を除外
-        # ========================================
+ 
         start = max(0, i - theiler)
         end = min(num_points-step, i + theiler + 1)
 
@@ -445,12 +410,8 @@ def sano_sawada_lyapunov(
         if len(nearest_idx) < m:
             continue
 
-        # ========================================
+      
         # 4. 近傍変位ベクトル
-        #
-        # y = X_k - X_i
-        # z = X_{k+step} - X_{i+step}
-        # ========================================
         Y = (
             embedded[nearest_idx]
             - embedded[i]
@@ -463,19 +424,9 @@ def sano_sawada_lyapunov(
 
         try:
 
-            # ====================================
+           
             # 5. 局所線形写像 A を最小二乗推定
-            #
-            # 行ベクトル表現では
-            #
-            # Y @ B ≈ Z
-            #
-            # column-vector形式なら
-            #
-            # z = A y
-            #
-            # なので A = B.T
-            # ====================================
+ 
             B, residuals, rank, s = np.linalg.lstsq(
                 Y,
                 Z,
@@ -492,20 +443,13 @@ def sano_sawada_lyapunov(
             if not np.all(np.isfinite(A)):
                 continue
 
-            # ====================================
+           
             # 6. 接ベクトルを時間発展
-            #
-            # Q_{j+1}' = A_j Q_j
-            # ====================================
             propagated = A @ Q
 
-            # ====================================
+            
             # 7. QR分解
-            #
-            # propagated = Q_new R
-            #
-            # Gram-Schmidt直交化と同等の役割
-            # ====================================
+         
             Q_new, R = np.linalg.qr(propagated)
 
             diag_R = np.abs(np.diag(R))
@@ -514,9 +458,9 @@ def sano_sawada_lyapunov(
             if np.any(diag_R <= 1e-14):
                 continue
 
-            # ====================================
+            
             # 8. 各方向の伸長率を累積
-            # ====================================
+           
             log_growth += np.log(diag_R)
 
             Q = Q_new
@@ -526,12 +470,8 @@ def sano_sawada_lyapunov(
         except np.linalg.LinAlgError:
             continue
 
-    # ============================================
     # 9. Lyapunov指数
-    #
-    # λ_i =
-    # Σ log |R_ii| / total time
-    # ============================================
+
     if valid_steps == 0:
 
         if return_spectrum:
