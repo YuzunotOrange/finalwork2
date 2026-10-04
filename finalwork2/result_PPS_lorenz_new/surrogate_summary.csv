@@ -1,0 +1,17 @@
+System,Missing Rate (%),Pattern,Original λ,PPS Z-score,PPS Significance
+Logistic (Chaos),0,1,0.014444,-48.989,1%
+Logistic (Chaos),10,1,0.010909,-50.473,1%
+Logistic (Chaos),10,2,0.01057,-60.186,1%
+Logistic (Chaos),10,3,0.010927,-54.914,1%
+Logistic (Chaos),30,1,0.029712,-62.61,1%
+Logistic (Chaos),30,2,0.036723,-55.075,1%
+Logistic (Chaos),30,3,0.025698,-60.886,1%
+Logistic (Chaos),50,1,0.055752,-53.167,1%
+Logistic (Chaos),50,2,0.045891,-57.402,1%
+Logistic (Chaos),50,3,0.056975,-47.622,1%
+Logistic (Chaos),70,1,0.083354,-42.762,1%
+Logistic (Chaos),70,2,0.062819,-59.13,1%
+Logistic (Chaos),70,3,0.076944,-31.855,1%
+Logistic (Chaos),90,1,0.067273,-34.283,1%
+Logistic (Chaos),90,2,0.055423,-47.659,1%
+Logistic (Chaos),90,3,0.065822,-49.298,1%

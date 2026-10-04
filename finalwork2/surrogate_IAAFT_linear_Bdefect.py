@@ -1,9 +1,11 @@
 """既知系 → ブロック欠損 → 線形補間 → IAAFT → 佐野沢田λ。
 元コードの力学系・欠損規則・τ/m推定・佐野沢田法を維持。
-Z-score/有意性検定は行わず、λと生成品質を記録する。
+出力はヒストグラム、判定集計CSV、サロゲートλ一覧CSVのみ。
+Z-scoreはサロゲート統計量の正規近似に基づく両側判定（既定|Z|>2.58）。
+添付の旧佐野沢田法には戻さず、前回のQR修正版を使用する。
 """
 import argparse
-import json
+import math
 from pathlib import Path
 from datetime import datetime
 import numpy as np
@@ -518,144 +520,160 @@ def iaaft_surrogate(x, max_iter=1000, tol=1e-8, seed=None, return_info=False):
     return (best, info) if return_info else best
 
 
-def acf(x, max_lag=100):
-    x = np.asarray(x, dtype=float) - np.mean(x)
-    denom = np.dot(x, x)
-    if denom == 0:
-        return np.full(min(max_lag, len(x)-1)+1, np.nan)
-    # 非循環ACF：端点の影響も含むため、FFT一致だけでは完全一致しない
-    return np.array([np.dot(x[:len(x)-k], x[k:]) / denom
-                     for k in range(min(max_lag, len(x)-1)+1)])
+def surrogate_z_test(original_lambda, surrogate_lambdas, threshold=2.58):
+    """Z=(input-mean)/sample_std。全本数が有限でなければNE。
+
+    p_normal_approxは標準正規分布による近似p値で、順位検定p値ではない。
+    NSは非棄却、NEは評価不能。標準偏差0はNEとする。
+    """
+    values = np.asarray(surrogate_lambdas, dtype=float)
+    finite = values[np.isfinite(values)]
+    mean = float(np.mean(finite)) if len(finite) else np.nan
+    std = float(np.std(finite, ddof=1)) if len(finite) >= 2 else np.nan
+    result = dict(lambda_input=float(original_lambda), lambda_surrogate_mean=mean,
+                  lambda_surrogate_std=std, valid_surrogates=len(finite),
+                  z_score=np.nan, p_normal_approx=np.nan, decision="NE", reason="")
+    if not np.isfinite(original_lambda):
+        result['reason'] = 'input_lambda_nonfinite'
+    elif len(finite) != len(values) or len(finite) < 2:
+        result['reason'] = 'surrogate_lambda_incomplete'
+    elif not np.isfinite(std) or std <= 0:
+        result['reason'] = 'surrogate_std_zero_or_nonfinite'
+    else:
+        z = (original_lambda - mean) / std
+        result.update(z_score=float(z), p_normal_approx=math.erfc(abs(z)/math.sqrt(2)),
+                      decision="Reject" if abs(z) > threshold else "NS",
+                      reason="")
+    return result
 
 
-def validate_iaaft(original, surrogate):
-    x, y = np.asarray(original), np.asarray(surrogate)
-    if x.shape != y.shape:
-        raise ValueError("Shape mismatch")
-    ax, ay = acf(x), acf(y)
-    return dict(distribution_error=float(np.max(np.abs(np.sort(x)-np.sort(y)))),
-                spectrum_error=spectrum_error(x, y),
-                acf_rmse=float(np.sqrt(np.mean((ax-ay)**2))),
-                same_as_input=bool(np.array_equal(x, y)))
+def estimate_embedding(data, fixed_m=None, fixed_tau=None):
+    tau = int(fixed_tau) if fixed_tau is not None else int(np.clip(
+        determine_tau(data, max_lag=min(100, len(data)//4)), 1, 50))
+    if fixed_m is not None:
+        return tau, int(fixed_m), "fixed_by_user"
+    # 元コードの推定規則を維持。飽和しない場合のm=2は推定成功と区別する。
+    values = itho_e1(data, max_dim=10, tau=tau, theiler=tau*2)
+    for i in range(1, len(values)):
+        if np.isfinite(values[i-1:i+1]).all() and values[i-1] > 0:
+            if abs(values[i]/values[i-1]-1) < .05:
+                return tau, i+1, "plateau_found"
+    return tau, 2, "fallback_2_no_plateau"
 
 
-def plot_validation(x, s, info, out):
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    axes[0, 0].plot(x[:500], label="Analysis input", alpha=.8)
-    axes[0, 0].plot(s[:500], label="IAAFT", alpha=.6)
-    axes[0, 0].set_title("First 500 samples")
-    bins = np.histogram_bin_edges(x, bins=30)
-    axes[0, 1].hist(x, bins=bins, histtype="step", label="Input")
-    axes[0, 1].hist(s, bins=bins, histtype="step", linestyle="--", label="IAAFT")
-    axes[0, 1].set_title("Value distribution")
-    freq = np.fft.rfftfreq(len(x))
-    for v, label in [(x, "Input"), (s, "IAAFT")]:
-        power = np.abs(np.fft.rfft(v))**2 / len(v)
-        axes[1, 0].semilogy(freq[1:], np.maximum(power[1:], 1e-30), label=label)
-        axes[1, 1].plot(acf(v), label=label)
-    axes[1, 0].set_title("Periodogram (DC excluded)")
-    axes[1, 0].set_xlabel("Frequency [cycles/sample]")
-    axes[1, 1].set_title("Non-circular ACF")
-    for ax in axes.flat:
-        ax.legend(); ax.grid(alpha=.2)
-    fig.suptitle(f"IAAFT: spectral error={info['spectrum_error']:.3e}; {info['stop_reason']}")
+def save_histogram(lambdas_by_trial, original_lambda, tests, name, rate, actual_rate, pattern, out):
+    count = len(tests)
+    columns = min(3, count)
+    rows = (count + columns - 1)//columns
+    fig, axes = plt.subplots(rows, columns, figsize=(8*columns, 5*rows), squeeze=False)
+    for ax, values, test in zip(axes.flat, lambdas_by_trial, tests):
+        finite = np.asarray(values)[np.isfinite(values)]
+        ax.hist(finite, bins=15, color='skyblue', edgecolor='blue', alpha=.7, label='IAAFT Surrogates')
+        if np.isfinite(original_lambda):
+            ax.axvline(original_lambda, color='red', linestyle='--', linewidth=2,
+                       label=rf'Input ($\lambda$={original_lambda:.4g})')
+        z = test['z_score']
+        ax.set_title(f"Trial {test['trial']} | {test['decision']} | Z={z:.3f}")
+        ax.set_xlabel(r"Maximum Lyapunov exponent $\lambda$ [per sample]")
+        ax.set_ylabel('Frequency')
+        ax.legend(); ax.grid(axis='y', alpha=.3)
+        if test['reason']:
+            ax.text(.02,.95,test['reason'],transform=ax.transAxes,va='top',fontsize=9)
+    for ax in list(axes.flat)[count:]:
+        ax.set_visible(False)
+    fig.suptitle(f"{name} | missing: requested={rate:.0%}, actual={actual_rate:.1%} | {pattern}")
     fig.tight_layout(); fig.savefig(out, dpi=150); plt.close(fig)
 
 
 def run(args):
-    if args.n_steps < 200 or args.num_surrogates < 1 or args.max_iter < 1 or args.tol < 0:
-        raise ValueError("n_steps >= 200, num_surrogates/max_iter >= 1, tol >= 0 required")
-    if any(not 0 <= r < 1 for r in args.missing_rates):
-        raise ValueError("Missing rates must be in [0,1)")
-    # 元の確率系生成器も再現可能にする。IAAFT用乱数とは分離。
-    np.random.seed(args.seed)
-    generators = {"brown": generate_brownian, "lorenz": generate_lorenz,
-                  "logistic": generate_logistic, "sine": generate_sin,
-                  "white": generate_white_noise}
-    out = Path(args.output_dir) / datetime.now().strftime("run_%Y%m%d_%H%M%S_%f")
+    if args.n_steps < 200 or args.num_surrogates < 2 or args.trials < 1:
+        raise ValueError('n_steps >= 200, num_surrogates >= 2, trials >= 1 required')
+    if args.max_iter < 1 or args.tol < 0 or args.z_threshold <= 0 or args.seed < 0:
+        raise ValueError('Invalid iteration, tolerance, threshold or seed setting')
+    if args.m is not None and args.m < 1 or args.tau is not None and args.tau < 1:
+        raise ValueError('m and tau must be positive')
+    if any(not 0 <= rate < 1 for rate in args.missing_rates):
+        raise ValueError('Missing rates must be in [0,1)')
+    generators = {'brown': ('Brown motion', generate_brownian),
+                  'lorenz': ('Lorenz (Chaos)', generate_lorenz),
+                  'logistic': ('Logistic (Chaos)', generate_logistic),
+                  'sine': ('Sine wave (Linear)', generate_sin),
+                  'white': ('White Noise', generate_white_noise)}
+    out = Path(args.output_dir) / datetime.now().strftime('run_%Y%m%d_%H%M%S_%f')
     out.mkdir(parents=True)
-    (out / "settings.json").write_text(json.dumps(vars(args), indent=2), encoding="utf-8")
-    summary = []
+    summaries, details = [], []
     for system in args.systems:
-        base = generators[system](n_steps=args.n_steps)
+        system_id = list(generators).index(system)
+        name, generator = generators[system]
+        # 系ごとの乱数seedを固定し、選択する系の順序で元データが変わらないようにする。
+        np.random.seed(int(np.random.SeedSequence([args.seed, system_id]).generate_state(1)[0]))
+        base = generator(n_steps=args.n_steps)
+        safe_name = name.replace(' ','_').replace('(','').replace(')','')
         for rate in args.missing_rates:
-            patterns = ["random"] if rate == 0 else ["random", "high", "low"]
+            patterns = ['random'] if rate == 0 else ['random','high','low']
             for pattern_id, pattern in enumerate(patterns):
-                folder = out / system / f"rate_{rate:g}" / f"pattern_{pattern}"
-                folder.mkdir(parents=True)
-                missing, data, mask = introduce_block_missing_and_interpolate(
+                _, data, mask = introduce_block_missing_and_interpolate(
                     base, rate, block_len=10, seed=pattern_id, pattern=pattern)
-                pd.DataFrame(dict(time=np.arange(len(base)), original=base,
-                                  missing=missing, interpolated=data, mask=mask.astype(int))).to_csv(
-                                      folder / "timeseries.csv", index=False)
-                tau = int(np.clip(determine_tau(data, max_lag=min(100, len(data)//4)), 1, 50))
-                e1 = itho_e1(data, max_dim=10, tau=tau, theiler=tau*2)
-                m, m_status = 2, "fallback_2_no_plateau"
-                for i in range(1, len(e1)):
-                    if np.isfinite(e1[i-1]) and e1[i-1] > 0 and abs(e1[i]/e1[i-1]-1) < .05:
-                        m, m_status = i+1, "plateau_found"
-                        break
-                pd.DataFrame({"dimension": np.arange(1, len(e1)+1), "E1": e1}).to_csv(folder / "E1.csv", index=False)
-                real = sano_sawada_lyapunov(data, m=m, tau=tau, theiler=tau*m, dt=1.0)
-                print(f"{system}, rate={rate}, pattern={pattern}, tau={tau}, m={m}: input lambda={real}", flush=True)
-                rows = []
-                for j in range(args.num_surrogates):
-                    seed = int(np.random.SeedSequence([args.seed, list(generators).index(system),
-                                                      args.missing_rates.index(rate), pattern_id, j]).generate_state(1)[0])
-                    surrogate, info = iaaft_surrogate(data, args.max_iter, args.tol, seed, True)
-                    metrics = validate_iaaft(data, surrogate)
-                    lam = sano_sawada_lyapunov(surrogate, m=m, tau=tau, theiler=tau*m, dt=1.0)
-                    rows.append(dict(surrogate_id=j+1, seed=seed, lambda_iaaft=lam,
-                                     iterations=info["iterations"], stop_reason=info["stop_reason"], **metrics))
-                    if args.save_surrogates or j == 0:
-                        pd.DataFrame({"input": data, "iaaft": surrogate}).to_csv(folder / f"surrogate_{j+1:03d}.csv", index=False)
-                    if j == 0:
-                        plot_validation(data, surrogate, info, folder / "IAAFT_validation.png")
-                        pd.DataFrame({"iteration": np.arange(1,len(info['error_history'])+1),
-                                      "spectrum_error": info['error_history']}).to_csv(folder / "convergence_first.csv", index=False)
-                    pd.DataFrame(rows).to_csv(folder / "IAAFT_results.csv", index=False)
-                    print(f"  IAAFT {j+1}/{args.num_surrogates}: lambda={lam:.6g}, error={metrics['spectrum_error']:.3e}, {info['stop_reason']}", flush=True)
-                frame = pd.DataFrame(rows)
-                finite = frame.loc[np.isfinite(frame.lambda_iaaft), "lambda_iaaft"]
-                fig, ax = plt.subplots(figsize=(9, 5))
-                ax.hist(finite, bins=15, color="skyblue", edgecolor="black", label="IAAFT")
-                if np.isfinite(real):
-                    ax.axvline(real, color="red", linestyle="--", label=f"Input lambda={real:.4g}")
-                ax.set(title=f"{system}, requested={rate:.0%}, actual={mask.mean():.1%}, {pattern}",
-                       xlabel=r"Maximum Lyapunov exponent $\lambda$ [per sample]", ylabel="Count")
-                ax.legend(); fig.tight_layout(); fig.savefig(folder / "IAAFT_lambda_histogram.png", dpi=150); plt.close(fig)
-                if rate > 0:
-                    fig, ax = plt.subplots(figsize=(12, 4))
-                    ax.plot(base, linewidth=.6, label="Original")
-                    ax.scatter(np.flatnonzero(mask), data[mask], s=2, color="red", label="Interpolated")
-                    ax.legend(); fig.tight_layout(); fig.savefig(folder / "missing_visualization.png", dpi=150); plt.close(fig)
-                summary.append(dict(system=system, requested_missing_rate=rate, actual_missing_rate=float(mask.mean()),
-                                    pattern=pattern, tau=tau, m=m, m_status=m_status, lambda_input=real,
-                                    num_surrogates=args.num_surrogates, valid_lambda_count=len(finite),
-                                    lambda_surrogate_mean=finite.mean(), lambda_surrogate_std=finite.std(ddof=1),
-                                    max_distribution_error=frame.distribution_error.max(),
-                                    mean_spectrum_error=frame.spectrum_error.mean(), max_spectrum_error=frame.spectrum_error.max(),
-                                    mean_acf_rmse=frame.acf_rmse.mean(), max_iter_count=int((frame.stop_reason=='max_iter').sum()),
-                                    same_as_input_count=int(frame.same_as_input.sum())))
-                pd.DataFrame(summary).to_csv(out / "IAAFT_summary.csv", index=False)
-    print(f"Saved: {out.resolve()}")
+                tau, m, m_status = estimate_embedding(data, args.m, args.tau)
+                if len(data) - (m-1)*tau <= m+1:
+                    raise ValueError(f'Not enough embedded points for {system}: m={m}, tau={tau}')
+                original = sano_sawada_lyapunov(data, m=m, tau=tau, theiler=tau*m, dt=1.)
+                print(f'\n{system} | rate={rate:.0%} | {pattern} | tau={tau}, m={m} ({m_status})',flush=True)
+                tests, all_lambdas = [], []
+                for trial in range(1,args.trials+1):
+                    lams, max_error, upper_limit_count = [], 0., 0
+                    for j in range(args.num_surrogates):
+                        # 欠損率自体をseedに含め、欠損率の選択順による変化を避ける。
+                        seed = int(np.random.SeedSequence([args.seed,system_id,
+                            int(round(rate*1_000_000)),pattern_id,trial,j]).generate_state(1)[0])
+                        surrogate, info = iaaft_surrogate(data,args.max_iter,args.tol,seed,True)
+                        if not np.array_equal(np.sort(data),np.sort(surrogate)):
+                            raise RuntimeError('IAAFT distribution preservation failed')
+                        max_error = max(max_error,info['spectrum_error'])
+                        upper_limit_count += info['stop_reason']=='max_iter'
+                        lam = sano_sawada_lyapunov(surrogate,m=m,tau=tau,theiler=tau*m,dt=1.)
+                        lams.append(lam)
+                        details.append(dict(system=system,missing_rate=rate,pattern=pattern,
+                                            trial=trial,surrogate_id=j+1,seed=seed,lambda_iaaft=lam))
+                        if (j+1)%10 == 0 or j+1 == args.num_surrogates:
+                            print(f'  Trial {trial}: {j+1}/{args.num_surrogates}',flush=True)
+                    test = surrogate_z_test(original,lams,args.z_threshold)
+                    record = dict(system=system,missing_rate=rate,actual_missing_rate=float(mask.mean()),
+                                  pattern=pattern,trial=trial,tau=tau,m=m,m_status=m_status,
+                                  num_surrogates=args.num_surrogates,z_threshold=args.z_threshold,**test)
+                    summaries.append(record); tests.append(record); all_lambdas.append(lams)
+                    print(f"  {test['decision']} | Z={test['z_score']:.4g} | "
+                          f"valid={test['valid_surrogates']}/{args.num_surrogates} | "
+                          f"max spectral error={max_error:.3e} | max_iter reached={upper_limit_count}",flush=True)
+                    # 途中経過も同じ2つのCSVへ保存する。
+                    pd.DataFrame(summaries).to_csv(out/'surrogate_summary.csv',index=False,encoding='utf-8-sig')
+                    pd.DataFrame(details).to_csv(out/'surrogate_lambdas.csv',index=False,encoding='utf-8-sig')
+                folder = out/safe_name/f'rate_{int(rate*100)}'/f'pattern_{pattern_id+1}'
+                folder.mkdir(parents=True)
+                save_histogram(all_lambdas,original,tests,name,rate,float(mask.mean()),pattern,
+                               folder/f'IAAFT_result_{safe_name}.png')
+    print(f'\nSaved: {out.resolve()}',flush=True)
     return out
 
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--n-steps", type=int, default=20000)
-    p.add_argument("--num-surrogates", type=int, default=39)
-    p.add_argument("--systems", nargs="+", choices=["brown", "lorenz", "logistic", "sine", "white"],
-                   default=["brown", "lorenz", "logistic", "sine", "white"])
-    p.add_argument("--missing-rates", nargs="+", type=float, default=[0,.1,.3,.5,.7])
-    p.add_argument("--max-iter", type=int, default=1000)
-    p.add_argument("--tol", type=float, default=1e-8)
-    p.add_argument("--seed", type=int, default=20261004)
-    p.add_argument("--output-dir", default="result_IAAFT_linear_defect")
-    p.add_argument("--save-surrogates", action="store_true")
+    p.add_argument('--n-steps',type=int,default=20000)
+    p.add_argument('--num-surrogates',type=int,default=39)
+    p.add_argument('--trials',type=int,default=5,help='各条件のサロゲート検定の反復回数')
+    p.add_argument('--systems',nargs='+',choices=['brown','lorenz','logistic','sine','white'],
+                   default=['brown','lorenz','logistic','sine','white'])
+    p.add_argument('--missing-rates',nargs='+',type=float,default=[0,.1,.3,.5,.7])
+    p.add_argument('--max-iter',type=int,default=1000)
+    p.add_argument('--tol',type=float,default=1e-8)
+    p.add_argument('--seed',type=int,default=20261004)
+    p.add_argument('--z-threshold',type=float,default=2.58,
+                   help='両側正規近似。2.58は約1%%、順位検定ではない')
+    p.add_argument('--m',type=int,default=None,help='指定時は次元の自動推定を使わない')
+    p.add_argument('--tau',type=int,default=None,help='指定時はAMIによる自動推定を使わない')
+    p.add_argument('--output-dir',default='result_IAAFT_linear_defect')
     return p.parse_args()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     run(parse_args())

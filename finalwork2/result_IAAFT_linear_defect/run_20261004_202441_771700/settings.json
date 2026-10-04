@@ -1,0 +1,23 @@
+{
+  "n_steps": 20000,
+  "num_surrogates": 39,
+  "systems": [
+    "brown",
+    "lorenz",
+    "logistic",
+    "sine",
+    "white"
+  ],
+  "missing_rates": [
+    0,
+    0.1,
+    0.3,
+    0.5,
+    0.7
+  ],
+  "max_iter": 1000,
+  "tol": 1e-08,
+  "seed": 20261004,
+  "output_dir": "result_IAAFT_linear_defect",
+  "save_surrogates": false
+}
