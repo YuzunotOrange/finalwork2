@@ -229,7 +229,7 @@ def itho_e1(x, max_dim=10, tau=5, s=None, k=None, theiler=0):
     return np.array(E1)
 
 
-# --- 佐野、沢田法（最大リアプノフ指数推定）---
+# --- 佐藤、佐野、沢田法（最大リアプノフ指数推定）---
 def sano_sawada_lyapunov(data, m = 3, tau = 1, n_neighbors = 30, theiler=None):
     
     N = len(data)
