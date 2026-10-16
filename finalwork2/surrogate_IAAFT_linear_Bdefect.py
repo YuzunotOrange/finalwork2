@@ -1,31 +1,16 @@
-"""既知系 → ブロック欠損 → 線形補間 → IAAFT → 佐野沢田λ。
-元コードの力学系・欠損規則・τ/m推定・佐野沢田法を維持。
-出力はヒストグラム、判定集計CSV、サロゲートλ一覧CSVのみ。
-Z-scoreはサロゲート統計量の正規近似に基づく両側判定（既定|Z|>2.58）。
-添付の旧佐野沢田法には戻さず、前回のQR修正版を使用する。
-"""
-import argparse
-import math
-from pathlib import Path
-from datetime import datetime
-import numpy as np
+﻿import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import os
+import datetime
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import mutual_info_score
 
-# --- 力学系を生成 ---
 def generate_brownian(n_steps=20000, D=1.0, dt=1.0):
-    """
-    1次元ブラウン運動（ランダムウォーク）
-    x[0] = 0 から始めて、ガウス乱数を積分していく。
-    D: 拡散係数
-    dt: 時間刻み（ここでは便宜的に 1.0）
-    """
     x = np.zeros(n_steps)
-    # 増分 dW ~ N(0, 2 D dt)
+
     sqrt_2Ddt = np.sqrt(2.0 * D * dt)
     dW = sqrt_2Ddt * np.random.randn(n_steps - 1)
     x[1:] = np.cumsum(dW)
@@ -60,13 +45,9 @@ def generate_white_noise(n_steps=20000):
     return np.random.normal(0, 1, n_steps)
 
 
-# ====== 破損線形補間を施している ======
+
 def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, seed=None, pattern = "random"):
-    """
-    連続ブロック欠損をランダムに付与し、線形補間で埋める。
-    missing_rate : 全体の何割を欠損させるか (0 <= r < 1)
-    block_len    : 1ブロックの欠損長（サンプル数）
-    """
+
     x = np.asarray(x, dtype=float)
     n = len(x)
     if missing_rate <= 0:
@@ -86,14 +67,14 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
     
     elif pattern == "high":
         
-        #上位40%を候補とする（元コードの60パーセンタイルを維持）
+
         thresh = np.percentile(diff, 60)
 
         candidates = np.where(diff >= thresh)[0]
     
     elif pattern == "low":
 
-        #下位40%を候補とする（元コードの40パーセンタイルを維持）
+
         thresh = np.percentile(diff, 40)
 
         candidates = np.where(diff <= thresh)[0]
@@ -106,7 +87,7 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
     if len(candidates) == 0:
         raise ValueError("No candidate positions for missing blocks")
 
-    #ブロック配置
+
     placed = 0
     trial = 0
     max_trial = 20000
@@ -122,7 +103,7 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
         trial += 1
 
 
-    # 上限調整
+
     if mask.sum() > total_missing:
         extra = mask.sum() - total_missing
         idx_true = np.where(mask)[0]
@@ -133,7 +114,7 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
     y_missing = x.copy()
     y_missing[mask] = np.nan
 
-    # 線形補間（端点は最近傍値で補完）
+
     xi = np.arange(n)
     valid = ~np.isnan(y_missing)
     y_filled = np.interp(
@@ -141,14 +122,15 @@ def introduce_block_missing_and_interpolate(x, missing_rate=0.1, block_len=10, s
         xi[valid],
         y_missing[valid]
     )
-    print(
-    f"[{pattern}] "
-    f"candidates={len(candidates)} "
-    f"placed={placed}/{num_blocks} "
-    f"actual_missing={mask.sum()/n:.3f}"
-    )
+
+
+
+
+
+
 
     return y_missing, y_filled, mask
+
 
 def average_mutual_information(x, max_lag=100, bins=32):
 
@@ -235,233 +217,59 @@ def itho_e1(x, max_dim=10, tau=5, s=None, k=None, theiler=0):
     return np.array(E1)
 
 
-# --- Sano-Sawada法：QR分解によるLyapunov spectrum推定 ---
-def sano_sawada_lyapunov(
-    data,
-    m=3,
-    tau=1,
-    n_neighbors=30,
-    theiler=None,
-    step=1,
-    dt=1.0,
-    return_spectrum=False
-):
-    """
-    Sano-Sawada法に基づき、
-    局所線形写像を近傍点から最小二乗推定し、
-    QR分解による接ベクトルの逐次伝播から
-    Lyapunov spectrumを推定する。
-
-    Parameters
-    ----------
-    data : array-like
-        1次元時系列
-
-    m : int
-        埋め込み次元
-
-    tau : int
-        遅れ時間
-
-    n_neighbors : int
-        局所線形写像の推定に使用する近傍点数
-
-    theiler : int or None
-        Theiler window
-        Noneなら tau*m
-
-    step : int
-        局所写像の時間ステップ
-
-    dt : float
-        元時系列のサンプリング時間
-        Logistic mapなら1.0でよい
-
-    return_spectrum : bool
-        Trueなら全Lyapunov spectrumを返す
-        Falseなら最大Lyapunov指数のみ返す
-    """
-
-    data = np.asarray(data, dtype=float)
-
-    # ============================================
-    # 1. 遅延座標によるアトラクタ再構成
-    # X_i = [x_i, x_{i+tau}, ..., x_{i+(m-1)tau}]
-    # ============================================
-    embedded = _embed(data, m, tau)
-
+# --- 旧佐野沢田実装：局所写像の最大特異値の対数を平均（QRなし） ---
+def sano_sawada_lyapunov(data, m = 3, tau = 1, n_neighbors = 30, theiler=None):
+    
+    N = len(data)
+    #アトラクタの再構築
+    embedded = _embed(np.asarray(data, dtype=float), m, tau)
     num_points = len(embedded)
 
-    if num_points <= m + step:
-        if return_spectrum:
-            return np.full(m, np.nan)
-        return np.nan
-
-    if theiler is None:
-        theiler = tau * m
-
-    # ============================================
-    # 2. 接空間の初期直交基底
-    # ============================================
-    Q = np.eye(m)
-
-    # 各方向のlog伸長率を累積
-    log_growth = np.zeros(m)
-
-    valid_steps = 0
-
-    # ============================================
-    # 3. 軌道に沿って局所Jacobianを推定
-    # ============================================
-    for i in range(num_points - step):
-
-        # 現在点との差
-        diff = embedded[:num_points-step] - embedded[i]
-
+    lyap_exp = []
+    #接ベクトルの時間発展を計算
+    step = 1 #写像の場合は1ステップづつ、連続系なら間隔を調整
+    
+    for i in range(0, num_points - step, 10):
+        search_range = num_points - step
+        diff = embedded[:search_range] - embedded[i]
+        
         dist = np.linalg.norm(diff, axis=1)
 
         # 自分自身を除外
         dist[i] = np.inf
 
-        # ========================================
-        # Theiler window
-        # 時間的に近すぎる点を除外
-        # ========================================
-        start = max(0, i - theiler)
-        end = min(num_points-step, i + theiler + 1)
+        # Theiler Window
+        if theiler is None:
+            theiler = tau * m
+        w = theiler
+        start = max(0, i - w)
+        end = min(search_range, i + w + 1)
 
         dist[start:end] = np.inf
 
-        # 有効な候補
-        valid_idx = np.where(np.isfinite(dist))[0]
-
+        #近傍点のインデックスを取得
+        valid_idx = np.flatnonzero(np.isfinite(dist))
         if len(valid_idx) < m:
             continue
+        nearest_idx = valid_idx[np.argsort(dist[valid_idx])[:n_neighbors]]
 
-        # 近傍点
-        nearest_idx = valid_idx[
-            np.argsort(dist[valid_idx])[:n_neighbors]
-        ]
-
-        # step後まで存在する点のみ使用
-        nearest_idx = nearest_idx[
-            nearest_idx + step < num_points
-        ]
-
-        if len(nearest_idx) < m:
-            continue
-
-        # ========================================
-        # 4. 近傍変位ベクトル
-        #
-        # y = X_k - X_i
-        # z = X_{k+step} - X_{i+step}
-        # ========================================
-        Y = (
-            embedded[nearest_idx]
-            - embedded[i]
-        )
-
-        Z = (
-            embedded[nearest_idx + step]
-            - embedded[i + step]
-        )
+        #ヤコビ行列の推定用行列構成
+        z = embedded[nearest_idx] - embedded[i]
+        z_next = embedded[nearest_idx + step] -embedded[i + step]
 
         try:
-
-            # ====================================
-            # 5. 局所線形写像 A を最小二乗推定
-            #
-            # 行ベクトル表現では
-            #
-            # Y @ B ≈ Z
-            #
-            # column-vector形式なら
-            #
-            # z = A y
-            #
-            # なので A = B.T
-            # ====================================
-            B, residuals, rank, s = np.linalg.lstsq(
-                Y,
-                Z,
-                rcond=None
-            )
-
-            # rank不足なら局所写像を信用しない
-            if rank < m:
-                continue
-
-            A = B.T
-
-            # NaN / infチェック
-            if not np.all(np.isfinite(A)):
-                continue
-
-            # ====================================
-            # 6. 接ベクトルを時間発展
-            #
-            # Q_{j+1}' = A_j Q_j
-            # ====================================
-            propagated = A @ Q
-
-            # ====================================
-            # 7. QR分解
-            #
-            # propagated = Q_new R
-            #
-            # Gram-Schmidt直交化と同等の役割
-            # ====================================
-            Q_new, R = np.linalg.qr(propagated)
-
-            diag_R = np.abs(np.diag(R))
-
-            # log(0)防止
-            if np.any(diag_R <= 1e-14):
-                continue
-
-            # ====================================
-            # 8. 各方向の伸長率を累積
-            # ====================================
-            log_growth += np.log(diag_R)
-
-            Q = Q_new
-
-            valid_steps += 1
-
+            #最小二乗法で A (z_next = A * z)を推定
+            A, _, _, _ = np.linalg.lstsq(z, z_next, rcond=None)
+            #特異値分解から最大伸長率を抽出
+            singular_values = np.linalg.svd(A, compute_uv=False)
+            if singular_values[0] > 0:
+                lyap_exp.append(np.log(singular_values[0]))
         except np.linalg.LinAlgError:
             continue
-
-    # ============================================
-    # 9. Lyapunov指数
-    #
-    # λ_i =
-    # Σ log |R_ii| / total time
-    # ============================================
-    if valid_steps == 0:
-
-        if return_spectrum:
-            return np.full(m, np.nan)
-
-        return np.nan
-
-    total_time = valid_steps * step * dt
-
-    lyapunov_spectrum = log_growth / total_time
-
-    # 大きい順に並べる
-    lyapunov_spectrum = np.sort(
-        lyapunov_spectrum
-    )[::-1]
-
-    if return_spectrum:
-        return lyapunov_spectrum
-
-    # 従来コードとの互換性のため
-    # 最大Lyapunov指数だけ返す
-    return lyapunov_spectrum[0]
+    return np.mean(lyap_exp) if lyap_exp else np.nan
 
 
+# --- IAAFTサロゲート生成 ---
 def spectrum_error(x, y):
     """DCを除く両側Fourier振幅の相対L2誤差。"""
     a = np.abs(np.fft.fft(x))[1:]
@@ -520,160 +328,287 @@ def iaaft_surrogate(x, max_iter=1000, tol=1e-8, seed=None, return_info=False):
     return (best, info) if return_info else best
 
 
-def surrogate_z_test(original_lambda, surrogate_lambdas, threshold=2.58):
-    """Z=(input-mean)/sample_std。全本数が有限でなければNE。
-
-    p_normal_approxは標準正規分布による近似p値で、順位検定p値ではない。
-    NSは非棄却、NEは評価不能。標準偏差0はNEとする。
-    """
-    values = np.asarray(surrogate_lambdas, dtype=float)
-    finite = values[np.isfinite(values)]
-    mean = float(np.mean(finite)) if len(finite) else np.nan
-    std = float(np.std(finite, ddof=1)) if len(finite) >= 2 else np.nan
-    result = dict(lambda_input=float(original_lambda), lambda_surrogate_mean=mean,
-                  lambda_surrogate_std=std, valid_surrogates=len(finite),
-                  z_score=np.nan, p_normal_approx=np.nan, decision="NE", reason="")
-    if not np.isfinite(original_lambda):
-        result['reason'] = 'input_lambda_nonfinite'
-    elif len(finite) != len(values) or len(finite) < 2:
-        result['reason'] = 'surrogate_lambda_incomplete'
-    elif not np.isfinite(std) or std <= 0:
-        result['reason'] = 'surrogate_std_zero_or_nonfinite'
+def significance_label(z):
+    if np.isnan(z):
+        return "NaN"
+    
+    if abs(z) > 2.58:
+        return "1%"
+    
+    elif abs(z) > 1.96:
+        return "5%"
+    
     else:
-        z = (original_lambda - mean) / std
-        result.update(z_score=float(z), p_normal_approx=math.erfc(abs(z)/math.sqrt(2)),
-                      decision="Reject" if abs(z) > threshold else "NS",
-                      reason="")
-    return result
+        return "NS"
+
+def surrogate_z_test(original_value, surrogate_values):
+
+    surrogate_values = np.asarray(surrogate_values)
+
+    mu = np.mean(surrogate_values)
+    sigma = np.std(surrogate_values, ddof=1)
+
+    if sigma == 0:
+        z = np.nan
+    else:
+        z = (original_value - mu) / sigma
+
+    return {
+        "z_score": z
+    }
 
 
-def estimate_embedding(data, fixed_m=None, fixed_tau=None):
-    tau = int(fixed_tau) if fixed_tau is not None else int(np.clip(
-        determine_tau(data, max_lag=min(100, len(data)//4)), 1, 50))
-    if fixed_m is not None:
-        return tau, int(fixed_m), "fixed_by_user"
-    # 元コードの推定規則を維持。飽和しない場合のm=2は推定成功と区別する。
-    values = itho_e1(data, max_dim=10, tau=tau, theiler=tau*2)
-    for i in range(1, len(values)):
-        if np.isfinite(values[i-1:i+1]).all() and values[i-1] > 0:
-            if abs(values[i]/values[i-1]-1) < .05:
-                return tau, i+1, "plateau_found"
-    return tau, 2, "fallback_2_no_plateau"
 
 
-def save_histogram(lambdas_by_trial, original_lambda, tests, name, rate, actual_rate, pattern, out):
-    count = len(tests)
-    columns = min(3, count)
-    rows = (count + columns - 1)//columns
-    fig, axes = plt.subplots(rows, columns, figsize=(8*columns, 5*rows), squeeze=False)
-    for ax, values, test in zip(axes.flat, lambdas_by_trial, tests):
-        finite = np.asarray(values)[np.isfinite(values)]
-        ax.hist(finite, bins=15, color='skyblue', edgecolor='blue', alpha=.7, label='IAAFT Surrogates')
-        if np.isfinite(original_lambda):
-            ax.axvline(original_lambda, color='red', linestyle='--', linewidth=2,
-                       label=rf'Input ($\lambda$={original_lambda:.4g})')
-        z = test['z_score']
-        ax.set_title(f"Trial {test['trial']} | {test['decision']} | Z={z:.3f}")
-        ax.set_xlabel(r"Maximum Lyapunov exponent $\lambda$ [per sample]")
-        ax.set_ylabel('Frequency')
-        ax.legend(); ax.grid(axis='y', alpha=.3)
-        if test['reason']:
-            ax.text(.02,.95,test['reason'],transform=ax.transAxes,va='top',fontsize=9)
-    for ax in list(axes.flat)[count:]:
-        ax.set_visible(False)
-    fig.suptitle(f"{name} | missing: requested={rate:.0%}, actual={actual_rate:.1%} | {pattern}")
-    fig.tight_layout(); fig.savefig(out, dpi=150); plt.close(fig)
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+result_dir = os.path.join(base_dir, "result_IAAFT_known_Bdefect_preQR",
+                          datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S_%f"))
+os.makedirs(result_dir, exist_ok=True)
+print(f"Result directory: {result_dir}")
+
+num_runs = 5
+num_surr = 39
+n_steps = 20000
+missing_rates = [0, .1, .3, .5, .7]
+seed = 20261004
+
+generators = {
+    "Brown_motion": generate_brownian,
+    "Lorenz": generate_lorenz,
+    "Logistic": generate_logistic,
+    "Sine_wave": generate_sin,
+    "White_noise": generate_white_noise,
+}
+datasets, originals, missing_series, masks = {}, {}, {}, {}
+for system_id, (system, generator) in enumerate(generators.items()):
+    np.random.seed(int(np.random.SeedSequence([seed, system_id]).generate_state(1)[0]))
+    base = generator(n_steps=n_steps)
+    for rate in missing_rates:
+        patterns = ["random"] if rate == 0 else ["random", "high", "low"]
+        for pattern_id, pattern in enumerate(patterns):
+            missing, filled, mask = introduce_block_missing_and_interpolate(
+                base, missing_rate=rate, block_len=10, seed=pattern_id, pattern=pattern)
+            name = f"{system}_rate_{int(rate*100)}_{pattern}"
+            datasets[name] = filled
+            originals[name] = base
+            missing_series[name] = missing
+            masks[name] = mask
+
+all_results = []
 
 
-def run(args):
-    if args.n_steps < 200 or args.num_surrogates < 2 or args.trials < 1:
-        raise ValueError('n_steps >= 200, num_surrogates >= 2, trials >= 1 required')
-    if args.max_iter < 1 or args.tol < 0 or args.z_threshold <= 0 or args.seed < 0:
-        raise ValueError('Invalid iteration, tolerance, threshold or seed setting')
-    if args.m is not None and args.m < 1 or args.tau is not None and args.tau < 1:
-        raise ValueError('m and tau must be positive')
-    if any(not 0 <= rate < 1 for rate in args.missing_rates):
-        raise ValueError('Missing rates must be in [0,1)')
-    generators = {'brown': ('Brown motion', generate_brownian),
-                  'lorenz': ('Lorenz (Chaos)', generate_lorenz),
-                  'logistic': ('Logistic (Chaos)', generate_logistic),
-                  'sine': ('Sine wave (Linear)', generate_sin),
-                  'white': ('White Noise', generate_white_noise)}
-    out = Path(args.output_dir) / datetime.now().strftime('run_%Y%m%d_%H%M%S_%f')
-    out.mkdir(parents=True)
-    summaries, details = [], []
-    for system in args.systems:
-        system_id = list(generators).index(system)
-        name, generator = generators[system]
-        # 系ごとの乱数seedを固定し、選択する系の順序で元データが変わらないようにする。
-        np.random.seed(int(np.random.SeedSequence([args.seed, system_id]).generate_state(1)[0]))
-        base = generator(n_steps=args.n_steps)
-        safe_name = name.replace(' ','_').replace('(','').replace(')','')
-        for rate in args.missing_rates:
-            patterns = ['random'] if rate == 0 else ['random','high','low']
-            for pattern_id, pattern in enumerate(patterns):
-                _, data, mask = introduce_block_missing_and_interpolate(
-                    base, rate, block_len=10, seed=pattern_id, pattern=pattern)
-                tau, m, m_status = estimate_embedding(data, args.m, args.tau)
-                if len(data) - (m-1)*tau <= m+1:
-                    raise ValueError(f'Not enough embedded points for {system}: m={m}, tau={tau}')
-                original = sano_sawada_lyapunov(data, m=m, tau=tau, theiler=tau*m, dt=1.)
-                print(f'\n{system} | rate={rate:.0%} | {pattern} | tau={tau}, m={m} ({m_status})',flush=True)
-                tests, all_lambdas = [], []
-                for trial in range(1,args.trials+1):
-                    lams, max_error, upper_limit_count = [], 0., 0
-                    for j in range(args.num_surrogates):
-                        # 欠損率自体をseedに含め、欠損率の選択順による変化を避ける。
-                        seed = int(np.random.SeedSequence([args.seed,system_id,
-                            int(round(rate*1_000_000)),pattern_id,trial,j]).generate_state(1)[0])
-                        surrogate, info = iaaft_surrogate(data,args.max_iter,args.tol,seed,True)
-                        if not np.array_equal(np.sort(data),np.sort(surrogate)):
-                            raise RuntimeError('IAAFT distribution preservation failed')
-                        max_error = max(max_error,info['spectrum_error'])
-                        upper_limit_count += info['stop_reason']=='max_iter'
-                        lam = sano_sawada_lyapunov(surrogate,m=m,tau=tau,theiler=tau*m,dt=1.)
-                        lams.append(lam)
-                        details.append(dict(system=system,missing_rate=rate,pattern=pattern,
-                                            trial=trial,surrogate_id=j+1,seed=seed,lambda_iaaft=lam))
-                        if (j+1)%10 == 0 or j+1 == args.num_surrogates:
-                            print(f'  Trial {trial}: {j+1}/{args.num_surrogates}',flush=True)
-                    test = surrogate_z_test(original,lams,args.z_threshold)
-                    record = dict(system=system,missing_rate=rate,actual_missing_rate=float(mask.mean()),
-                                  pattern=pattern,trial=trial,tau=tau,m=m,m_status=m_status,
-                                  num_surrogates=args.num_surrogates,z_threshold=args.z_threshold,**test)
-                    summaries.append(record); tests.append(record); all_lambdas.append(lams)
-                    print(f"  {test['decision']} | Z={test['z_score']:.4g} | "
-                          f"valid={test['valid_surrogates']}/{args.num_surrogates} | "
-                          f"max spectral error={max_error:.3e} | max_iter reached={upper_limit_count}",flush=True)
-                    # 途中経過も同じ2つのCSVへ保存する。
-                    pd.DataFrame(summaries).to_csv(out/'surrogate_summary.csv',index=False,encoding='utf-8-sig')
-                    pd.DataFrame(details).to_csv(out/'surrogate_lambdas.csv',index=False,encoding='utf-8-sig')
-                folder = out/safe_name/f'rate_{int(rate*100)}'/f'pattern_{pattern_id+1}'
-                folder.mkdir(parents=True)
-                save_histogram(all_lambdas,original,tests,name,rate,float(mask.mean()),pattern,
-                               folder/f'IAAFT_result_{safe_name}.png')
-    print(f'\nSaved: {out.resolve()}',flush=True)
-    return out
+for name, base_data in datasets.items():
+
+    file_safe_name = (
+        name.replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+    )
+
+    # データごとの保存フォルダ
+    system_dir = os.path.join(
+        result_dir,
+        file_safe_name
+    )
+    os.makedirs(system_dir, exist_ok=True)
+
+    for run in range(1, num_runs + 1):
+
+        print("\n==============================")
+        print(f"Dataset : {name}")
+        print(f"Run     : {run}/{num_runs}")
+        print("==============================")
+
+        # runごとの保存フォルダ
+        run_dir = os.path.join(
+            system_dir,
+            f"run_{run}"
+        )
+        os.makedirs(run_dir, exist_ok=True)
+
+        data = base_data.copy()
+
+        # ===== 時系列データ保存 =====
+        ts_df = pd.DataFrame({
+            "time": np.arange(len(base_data)),
+            "data": data,
+            "original": originals[name],
+            "missing": missing_series[name],
+            "missing_mask": masks[name]
+        })
+
+        csv_path = os.path.join(
+            run_dir,
+            f"timeseries_{file_safe_name}.csv"
+        )
+
+        ts_df.to_csv(csv_path, index=False)
+        print(f"Saved CSV: {csv_path}")
+
+        # ===== 遅れ時間 tau 推定 =====
+        tau_est = determine_tau(data, max_lag=100)
+
+        if tau_est < 1:
+            tau_est = 1
+
+        if tau_est > 50:
+            tau_est = 50
+
+        tau_val = tau_est
+
+        print(f"Estimated Tau: {tau_val}")
+
+        # ===== 埋め込み次元 m 推定 =====
+        e1_values = itho_e1(
+            data,
+            max_dim=10,
+            tau=tau_val,
+            theiler=tau_val * 2
+        )
+
+        m_est = 2
+
+        for i in range(1, len(e1_values)):
+
+            ratio = e1_values[i] / e1_values[i - 1]
+
+            if abs(ratio - 1.0) < 0.05:
+                m_est = i + 1
+                break
+
+        print(f">> Estimated Parameters: Tau = {tau_val}, m = {m_est}")
+        print(f"Estimated m: {m_est} (E1 values: {e1_values[:m_est]})")
+
+        # ===== オリジナルデータのリアプノフ指数 =====
+        print(
+            f"Calculating original Lyapunov exponent "
+            f"(m={m_est}, tau={tau_val})..."
+        )
+
+        real_lam = sano_sawada_lyapunov(
+            data,
+            m=m_est,
+            tau=tau_val,
+            theiler=tau_val * m_est
+        )
+
+        # ===== IAAFTサロゲート =====
+        print("Calculating IAAFT Surrogates...")
+
+        iaaft_lams = [
+            sano_sawada_lyapunov(
+                iaaft_surrogate(data),
+                m=m_est,
+                tau=tau_val,
+                theiler=tau_val * m_est
+            )
+            for _ in range(num_surr)
+        ]
+
+        # ===== 結果CSV保存 =====
+        result_df = pd.DataFrame({
+            "type": (
+                ["original"] +
+                ["IAAFT_surrogate"] * num_surr
+            ),
+            "lambda": (
+                [real_lam] +
+                iaaft_lams
+            )
+        })
+
+        result_csv_path = os.path.join(
+            run_dir,
+            f"lyapunov_results_{file_safe_name}.csv"
+        )
+
+        result_df.to_csv(result_csv_path, index=False)
+        print(f"Saved result CSV: {result_csv_path}")
+
+    # ===== Z-score calculation =====
+        iaaft_result = surrogate_z_test(real_lam, iaaft_lams)
+
+        all_results.append({
+
+                "Data": name,
+                "Run": run,
+                "Original λ": round(real_lam, 6),
+
+                "IAAFT Z-score": round(iaaft_result["z_score"], 3),
+                "IAAFT Significance": significance_label(iaaft_result["z_score"]),
+
+        })
+
+        # ===== Summary CSVを逐次保存 =====
+        summary_df = pd.DataFrame(all_results)
+
+        summary_path = os.path.join(
+            result_dir,
+            "surrogate_summary.csv"
+        )
+
+        summary_df.to_csv(
+            summary_path,
+            index=False,
+            encoding="utf-8-sig"
+        )
+
+        print(f"Updated Summary: {summary_path}")
 
 
-def parse_args():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--n-steps',type=int,default=20000)
-    p.add_argument('--num-surrogates',type=int,default=39)
-    p.add_argument('--trials',type=int,default=5,help='各条件のサロゲート検定の反復回数')
-    p.add_argument('--systems',nargs='+',choices=['brown','lorenz','logistic','sine','white'],
-                   default=['brown','lorenz','logistic','sine','white'])
-    p.add_argument('--missing-rates',nargs='+',type=float,default=[0,.1,.3,.5,.7])
-    p.add_argument('--max-iter',type=int,default=1000)
-    p.add_argument('--tol',type=float,default=1e-8)
-    p.add_argument('--seed',type=int,default=20261004)
-    p.add_argument('--z-threshold',type=float,default=2.58,
-                   help='両側正規近似。2.58は約1%%、順位検定ではない')
-    p.add_argument('--m',type=int,default=None,help='指定時は次元の自動推定を使わない')
-    p.add_argument('--tau',type=int,default=None,help='指定時はAMIによる自動推定を使わない')
-    p.add_argument('--output-dir',default='result_IAAFT_linear_defect')
-    return p.parse_args()
+        # ===== ヒストグラム作成 =====
+        plt.figure(figsize=(10, 6))
 
+        plt.hist(
+            iaaft_lams,
+            bins=15,
+            color='skyblue',
+            alpha=0.6,
+            label='IAAFT Surrogates',
+            edgecolor='blue'
+        )
 
-if __name__ == '__main__':
-    run(parse_args())
+        plt.axvline(
+            real_lam,
+            color='red',
+            linestyle='--',
+            linewidth=3,
+            label=rf'Original ($\lambda$={real_lam:.3f})'
+        )
+
+        plt.title(
+            f"{name} "
+            f"(Run {run}/{num_runs})"
+        )
+
+        plt.xlabel("Maximum Lyapunov Exponent ($\\lambda$)")
+        plt.ylabel("Frequency")
+        plt.legend()
+        plt.grid(axis='y', alpha=0.3)
+
+        save_path = os.path.join(
+            run_dir,
+            f"result_{file_safe_name}.png"
+        )
+
+        plt.savefig(save_path)
+        print(f"Saved figure: {save_path}")
+
+        plt.close()
+
+summary_df = pd.DataFrame(all_results)
+
+summary_path = os.path.join(
+     result_dir,
+        "surrogate_summary.csv"
+    )
+
+summary_df.to_csv(
+     summary_path,
+       index=False
+    )
+
+print(f"Saved Summary: {summary_path}")
+
+plt.show()
